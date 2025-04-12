@@ -1,0 +1,33 @@
+syntax="proto3";
+package inferenceservice;
+
+message Null {}
+
+service Inferencer{
+  rpc RunInference(InferenceRequest) returns (InferenceResponse);
+  rpc ListModels(Null) returns (stream ModelSpec);
+  // rpc runBatchedInference(stream InferenceRequest) returns (stream InferenceResponse);
+}
+
+enum ModelType{
+  IMAGE = 0; 
+  TEXT = 1;
+}
+
+message ModelSpec{
+  string model_id = 1;
+  ModelType model_type = 2;
+}
+
+message InferenceRequest{
+  ModelSpec model = 1;
+  oneof data{
+      bytes image_bytes = 2;
+      string text = 3;
+    }
+}
+
+message InferenceResponse{
+  repeated double logits = 1;
+  int32 timestamp = 2;
+}
