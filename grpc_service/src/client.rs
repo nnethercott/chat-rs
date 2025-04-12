@@ -1,4 +1,4 @@
-use inference_service::{Null};
+use inference_service::Null;
 use inference_service::inferencer_client::InferencerClient;
 use tokio_stream::StreamExt;
 use tonic::Request;
@@ -8,6 +8,7 @@ pub mod inference_service {
     tonic::include_proto!("inferenceservice");
 }
 
+#[allow(dead_code)]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let mut client = InferencerClient::connect("http://[::]:50051")

@@ -1,7 +1,9 @@
+#![allow( unused_variables, dead_code)]
+
 use inference_service::{
     inferencer_server::{Inferencer, InferencerServer}, InferenceRequest, InferenceResponse, ModelSpec, ModelType, Null
 };
-use std::{fmt::Display, net::SocketAddr};
+use std::net::SocketAddr;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
@@ -55,6 +57,7 @@ impl Inferencer for MLBackend {
     }
 }
 
+#[allow(dead_code)]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let addr: SocketAddr = "[::1]:50051".parse()?;
