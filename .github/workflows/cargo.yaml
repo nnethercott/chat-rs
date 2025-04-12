@@ -1,0 +1,19 @@
+name: cargo checks
+# TODO: change behaviour for checks vs formatting?
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo test --all-features
