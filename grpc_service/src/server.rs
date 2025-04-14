@@ -1,35 +1,27 @@
-#![allow( unused_variables, dead_code)]
-
-use inference_service::{
-    inferencer_server::{Inferencer, InferencerServer}, InferenceRequest, InferenceResponse, ModelSpec, ModelType, Null
+#![allow(unused_variables, dead_code)]
+use crate::{
+    InferenceRequest, InferenceResponse, ModelSpec, Null,
+    inferencer_server::{Inferencer, InferencerServer},
 };
-use std::net::SocketAddr;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::{transport::Server, Request, Response, Status};
-use uuid::Uuid;
+use tonic::{Request, Response, Status};
 
-pub mod inference_service {
-    tonic::include_proto!("inferenceservice");
+pub struct ModelServer {
+    pub registry: Vec<ModelSpec>,
 }
-struct MLBackend {
-    registry: Vec<ModelSpec>,
-}
-impl MLBackend {
-    // for now randomly generate a list of models
-    fn new() -> Self {
-        let registry: Vec<ModelSpec> = (0..32)
-            .map(|_| ModelSpec {
-                model_id: Uuid::new_v4().to_string(),
-                model_type: ModelType::Image.into(),
-            })
-            .collect();
-        Self { registry }
+impl ModelServer {
+    pub fn new() -> Self {
+        Self { registry: vec![] }
     }
 }
 
+mod inference_service {
+    tonic::include_proto!("inferenceservice");
+}
+
 #[tonic::async_trait]
-impl Inferencer for MLBackend {
+impl Inferencer for ModelServer {
     async fn run_inference(
         &self,
         request: Request<InferenceRequest>,
@@ -55,18 +47,4 @@ impl Inferencer for MLBackend {
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
-}
-
-#[allow(dead_code)]
-#[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
-    let addr: SocketAddr = "[::1]:50051".parse()?;
-    let ml_service = MLBackend::new();
-
-    let server = Server::builder()
-        .add_service(InferencerServer::new(ml_service))
-        .serve(addr)
-        .await?;
-
-    Ok(())
 }

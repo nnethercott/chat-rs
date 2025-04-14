@@ -1,2 +1,2 @@
 pub mod server;
-pub mod client;
+tonic::include_proto!("inferenceservice");

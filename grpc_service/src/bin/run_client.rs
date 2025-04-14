@@ -1,12 +1,11 @@
-use inference_service::Null;
-use inference_service::inferencer_client::InferencerClient;
+use anyhow::Context;
 use tokio_stream::StreamExt;
 use tonic::Request;
-use anyhow::Context;
+use grpc_service::{Null, inferencer_client::InferencerClient};
 
-pub mod inference_service {
-    tonic::include_proto!("inferenceservice");
-}
+// mod inference_service {
+//     tonic::include_proto!("inferenceservice");
+// }
 
 #[allow(dead_code)]
 #[tokio::main]
@@ -15,9 +14,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .await
         .context("failed to connect to running server")?;
 
-    let request = Request::new(Null{});
+    let request = Request::new(Null {});
     let mut rx = client.list_models(request).await?.into_inner();
-    while let Some(Ok(model)) = rx.next().await{
+    while let Some(Ok(model)) = rx.next().await {
         println!("{:?}", model);
     }
 
