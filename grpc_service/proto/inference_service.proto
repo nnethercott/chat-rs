@@ -1,11 +1,11 @@
 syntax="proto3";
 package inferenceservice;
 
-message Null {}
+import "google/protobuf/empty.proto";
 
 service Inferencer{
   rpc RunInference(InferenceRequest) returns (InferenceResponse);
-  rpc ListModels(Null) returns (stream ModelSpec);
+  rpc ListModels(google.protobuf.Empty) returns (stream ModelSpec);
   // rpc runBatchedInference(stream InferenceRequest) returns (stream InferenceResponse);
 }
 

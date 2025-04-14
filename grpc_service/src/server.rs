@@ -1,11 +1,14 @@
 #![allow(unused_variables, dead_code)]
+
 use crate::{
-    InferenceRequest, InferenceResponse, ModelSpec, Null,
-    inferencer_server::{Inferencer, InferencerServer},
+    InferenceRequest, InferenceResponse, ModelSpec,
+    inferencer_server::Inferencer,
 };
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
+
+//TODO: add server spawn util here
 
 pub struct ModelServer {
     pub registry: Vec<ModelSpec>,
@@ -34,7 +37,7 @@ impl Inferencer for ModelServer {
 
     async fn list_models(
         &self,
-        request: Request<Null>,
+        request: Request<()>,
     ) -> Result<Response<Self::ListModelsStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
 
