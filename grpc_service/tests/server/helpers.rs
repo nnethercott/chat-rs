@@ -1,6 +1,5 @@
 use grpc_service::{
-    ModelSpec, ModelType, inferencer_client::InferencerClient, inferencer_server::InferencerServer,
-    server::ModelServer,
+    configuration::generate_random_registry, inferencer_client::InferencerClient, inferencer_server::InferencerServer, server::ModelServer, ModelSpec, ModelType
 };
 use tokio::time;
 use std::{net::SocketAddr, time::Duration};
@@ -50,13 +49,7 @@ pub async fn spawn_server() -> TestServer {
 
     // model server with fake registry
     let mut ml_service = ModelServer::new();
-    let registry: Vec<ModelSpec> = (0..32)
-        .map(|_| ModelSpec {
-            model_id: Uuid::new_v4().to_string(),
-            model_type: ModelType::Image.into(),
-        })
-        .collect();
-    ml_service.registry = registry;
+    ml_service.registry = generate_random_registry();
 
     tokio::spawn(async move {
         let server = ModelServer::new();
