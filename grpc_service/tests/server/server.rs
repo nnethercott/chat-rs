@@ -1,5 +1,3 @@
-use grpc_service::inferencer_client::InferencerClient;
-
 use crate::helpers::spawn_server;
 
 // NOTE: this is not reaallly a test
@@ -8,7 +6,7 @@ async fn list_model_endpoint_works() {
     let mut ts = spawn_server().await;
 
     let models = ts.get_registry_models().await;
-    for model in &models[..]{
+    for model in &models[..] {
         println!("{:?}", model);
     }
 }

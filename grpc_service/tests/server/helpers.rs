@@ -1,14 +1,14 @@
 use grpc_service::{
-    configuration::generate_random_registry, inferencer_client::InferencerClient, inferencer_server::InferencerServer, server::ModelServer, ModelSpec, ModelType
+    ModelSpec, inferencer_client::InferencerClient, inferencer_server::InferencerServer,
+    server::ModelServer, server::generate_random_registry,
 };
-use tokio::time;
 use std::{net::SocketAddr, time::Duration};
+use tokio::time;
 use tokio_stream::StreamExt;
 use tonic::{
     Request,
     transport::{Channel, Server},
 };
-use uuid::Uuid;
 
 // TODO: random port and store it here, then connect client in tests
 pub struct TestServer {
@@ -16,11 +16,12 @@ pub struct TestServer {
 }
 
 impl TestServer {
-    pub async fn new(addr: String) -> Self
-    {
-        // BAD ?
+    pub async fn new(addr: String) -> Self {
+        // BAD ? sleep to allow server spawn
         time::sleep(Duration::from_millis(10)).await;
-        let client = InferencerClient::connect(format!("http://{}", addr)).await.unwrap();
+        let client = InferencerClient::connect(format!("http://{}", addr))
+            .await
+            .unwrap();
         Self { client }
     }
 
@@ -32,13 +33,10 @@ impl TestServer {
             .expect("failed to get stream")
             .into_inner();
 
-        let mut stream = stream.filter_map(|i| i.ok());
-
-        let mut models = vec![];
-        while let Some(val) = stream.next().await{
-            models.push(val);
-        }
-        models
+        stream
+            .filter_map(|i| i.ok())
+            .collect::<Vec<ModelSpec>>()
+            .await
     }
 }
 
@@ -52,7 +50,6 @@ pub async fn spawn_server() -> TestServer {
     ml_service.registry = generate_random_registry();
 
     tokio::spawn(async move {
-        let server = ModelServer::new();
         Server::builder()
             .add_service(InferencerServer::new(ml_service))
             .serve(socket_addr)
