@@ -1,0 +1,12 @@
+[package]
+name = "example"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+grpc_service = { path = "../" }
+tonic = "0.13.0"
+tokio = "1.42.1"
+anyhow = "1.0.98"
+tokio-stream = "0.1.17"
+

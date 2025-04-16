@@ -1,13 +1,22 @@
-#![allow(unused_variables, dead_code)]
-
 use crate::{
-    InferenceRequest, InferenceResponse, ModelSpec,
-    configuration::{Settings, generate_random_registry},
+    InferenceRequest, InferenceResponse, ModelSpec, ModelType,
+    config::Settings,
     inferencer_server::{Inferencer, InferencerServer},
 };
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
+use tower_http::trace::{MakeSpan, TraceLayer};
+use uuid::Uuid;
+
+pub fn generate_random_registry() -> Vec<ModelSpec> {
+    (0..32)
+        .map(|_| ModelSpec {
+            model_id: Uuid::new_v4().to_string(),
+            model_type: ModelType::Image.into(),
+        })
+        .collect()
+}
 
 pub struct ModelServer {
     pub registry: Vec<ModelSpec>,
@@ -22,7 +31,7 @@ impl ModelServer {
 impl Inferencer for ModelServer {
     async fn run_inference(
         &self,
-        request: Request<InferenceRequest>,
+        _request: Request<InferenceRequest>,
     ) -> Result<Response<InferenceResponse>, Status> {
         // use onnx inference from crate we haven't defined yet ...
         todo!()
@@ -33,7 +42,7 @@ impl Inferencer for ModelServer {
 
     async fn list_models(
         &self,
-        request: Request<()>,
+        _request: Request<()>,
     ) -> Result<Response<Self::ListModelsStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
 
@@ -48,9 +57,23 @@ impl Inferencer for ModelServer {
     }
 }
 
+#[derive(Clone)]
+struct ServerMakeSpan;
+
+impl<T> MakeSpan<T> for ServerMakeSpan {
+    fn make_span(&mut self, request: &http::Request<T>) -> tracing::Span {
+        tracing::span!(
+            tracing::Level::INFO,
+            "grpc request",
+            method= %request.method(),
+            resource = %request.uri().path(),
+            span_id = %Uuid::new_v4(), // FIXME: hash this and hexdump
+        )
+    }
+}
+
 pub async fn run_server(config: Settings) -> tonic::Result<()> {
-    let addr = "[::1]:50051";
-    let socket_addr = addr.parse().unwrap();
+    let socket_addr = config.server.addr().parse().unwrap();
 
     // FIXME: add db connection string to new() ?
     // or better use a builder pattern -> ModelServer::builder().connect_registry(db_string)?;
@@ -58,7 +81,7 @@ pub async fn run_server(config: Settings) -> tonic::Result<()> {
     let mut ml_service = ModelServer::new();
     ml_service.registry = generate_random_registry();
 
-    //health check rpc
+    // health
     let (reporter, health_service) = tonic_health::server::health_reporter();
     reporter
         .set_serving::<InferencerServer<ModelServer>>()
@@ -71,12 +94,13 @@ pub async fn run_server(config: Settings) -> tonic::Result<()> {
         .unwrap();
 
     Server::builder()
+        .layer(TraceLayer::new_for_grpc().make_span_with(ServerMakeSpan))
         .add_service(InferencerServer::new(ml_service))
         .add_service(reflection_service)
         .add_service(health_service)
         .serve(socket_addr)
         .await
-        .unwrap();
+        .map_err(|e| Status::internal(format!("server failed to start: {e}")))?;
 
     Ok(())
 }

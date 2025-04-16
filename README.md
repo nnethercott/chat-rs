@@ -12,6 +12,14 @@ tangible:
 - minio in deployment as a bucket for storing model weights
 - gRPC health probe k8s 
   - there's also [this](https://github.com/grpc-ecosystem/grpc-health-probe) cli tool
+- pipe/sync logs to an elasticsearch instance ?
+- [rust-cache](https://github.com/Swatinem/rust-cache) for reducing gh action times
+- *graceful shutdown* for grpc and web services
+
+### notes on logging
+- tracing layer for grpc like [this](https://docs.rs/tower-http/latest/tower_http/trace/struct.TraceLayer.html#method.new_for_grpc)  
+  - or we can use the `interceptor` in the server init to inject the logging middleware
+- we probably want 1) gRPC request-level logs, and 2) logging the internals through #\[instrument\]
 
 conceptual:
 * familiarize myself with tokio ecosystem (tonic, hyper, axum)
@@ -26,11 +34,12 @@ conceptual:
 - [x] re-read docs on streams and futures in rust (see if we can avoid the ReceiverStream pattern)
 - [x] setup health probe alongside service with tonic-health [docs](https://github.com/hyperium/tonic/tree/master/examples/src/health) 
 - [ ] setup db to store model registry (could this be replaced down the line with mlflow?)
-- [ ] add reflection
+- [x] add reflection
 - [ ] better tests
 - [ ] add env files serializing to app config
-- [ ] tracing and formatted logs
-- [ ] llvm linker
+- [x] tracing and formatted logs
+- [x] llvm linker
+  - [ ] read that article on minimizing build times
 
 ## notes 
 - to run the server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another
