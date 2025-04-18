@@ -14,8 +14,10 @@ path="./src/main.rs"
 anyhow = "1.0.97"
 async-stream = "0.3.6"
 config = { version = "0.15.11", default-features = false, features=['yaml'] }
+thiserror = "2.0.12"
 prost = { version = "0.13.5", default-features=false }
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio-postgres = "0.7.13"
 tokio-stream = "0.1.17"
 tonic = { version = "0.13.0" }
 tonic-reflection = "0.13.0"

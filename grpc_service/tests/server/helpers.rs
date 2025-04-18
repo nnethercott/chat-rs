@@ -45,13 +45,13 @@ pub async fn spawn_server() -> TestServer {
     let addr = "[::1]:50051";
     let socket_addr: SocketAddr = addr.parse().unwrap();
 
-    // model server with fake registry
-    let mut ml_service = ModelServer::new();
-    ml_service.registry = generate_random_registry();
+    // FIXME: get client
+    let model_server = ModelServer::new(pg_client);
 
+    // model server with fake registry
     tokio::spawn(async move {
         Server::builder()
-            .add_service(InferencerServer::new(ml_service))
+            .add_service(InferencerServer::new(model_server))
             .serve(socket_addr)
             .await
             .unwrap();

@@ -1,3 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["grpc_service", "grpc_service/example"]
+members = [
+  "grpc_service",
+  # "grpc_service/example"
+]

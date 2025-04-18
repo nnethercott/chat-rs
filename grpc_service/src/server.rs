@@ -1,9 +1,11 @@
 use crate::{
-    InferenceRequest, InferenceResponse, ModelSpec, ModelType,
+    Error, InferenceRequest, InferenceResponse, ModelSpec, ModelType,
     config::Settings,
     inferencer_server::{Inferencer, InferencerServer},
 };
+use std::sync::Arc;
 use tokio::sync::mpsc;
+use tokio_postgres::Client;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
@@ -20,10 +22,14 @@ pub fn generate_random_registry() -> Vec<ModelSpec> {
 
 pub struct ModelServer {
     pub registry: Vec<ModelSpec>,
+    pub pg_client: Arc<Client>,
 }
 impl ModelServer {
-    pub fn new() -> Self {
-        Self { registry: vec![] }
+    pub fn new(pg_client: Client) -> Self {
+        Self {
+            pg_client: Arc::new(pg_client),
+            registry: vec![],
+        }
     }
 }
 
@@ -72,14 +78,8 @@ impl<T> MakeSpan<T> for ServerMakeSpan {
     }
 }
 
-pub async fn run_server(config: Settings) -> tonic::Result<()> {
+pub async fn run_server(config: Settings, pg_client: tokio_postgres::Client) -> Result<(), Error> {
     let socket_addr = config.server.addr().parse().unwrap();
-
-    // FIXME: add db connection string to new() ?
-    // or better use a builder pattern -> ModelServer::builder().connect_registry(db_string)?;
-    // with custom db connection error
-    let mut ml_service = ModelServer::new();
-    ml_service.registry = generate_random_registry();
 
     // health
     let (reporter, health_service) = tonic_health::server::health_reporter();
@@ -93,9 +93,13 @@ pub async fn run_server(config: Settings) -> tonic::Result<()> {
         .build_v1alpha()
         .unwrap();
 
+    let model_server = ModelServer::new(pg_client);
+
     Server::builder()
+        // add tracing layer
         .layer(TraceLayer::new_for_grpc().make_span_with(ServerMakeSpan))
-        .add_service(InferencerServer::new(ml_service))
+        // add service layers -> [ml, reflection, health]
+        .add_service(InferencerServer::new(model_server))
         .add_service(reflection_service)
         .add_service(health_service)
         .serve(socket_addr)

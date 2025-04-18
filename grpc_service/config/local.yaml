@@ -1,4 +1,4 @@
-log_level: info
+log_level: debug
 server:
   host: "[::1]"
   port: 50051
@@ -7,4 +7,4 @@ db:
   port: 5432
   db_name: models
   username: postgres
-  password: postgres
+  password: password

@@ -1,14 +1,18 @@
 # tonic-model-serving
 
+## flow 
+- local dev
+  - sqlx to apply migrations to postgres image running in docker (so far a la zero2prod but its a nice pattern, sue me)
+
 ## goals & ideas
 tangible:
-* implement inference server based on gRPC 
-* leverage cargo workspaces 
-  * at least two crates - one for front and one for back
-* k8s deployment + observability to check balancing with load tests
-* better telemetry
-* tracing and structured logging
-* health check with probing (added later in the deployment to ensure service up and running) 
+- implement inference server based on gRPC 
+- leverage cargo workspaces 
+  - at least two crates - one for front and one for back
+- k8s deployment + observability to check balancing with load tests
+- better telemetry
+- tracing and structured logging
+- health check with probing (added later in the deployment to ensure service up and running) 
 - minio in deployment as a bucket for storing model weights
 - gRPC health probe k8s 
   - there's also [this](https://github.com/grpc-ecosystem/grpc-health-probe) cli tool
@@ -16,15 +20,18 @@ tangible:
 - [rust-cache](https://github.com/Swatinem/rust-cache) for reducing gh action times
 - *graceful shutdown* for grpc and web services
 
+- project pivot idea: use the service as an embeddings type generation thing like meilisearch and implement a database
+  - could try to do an from-scratch implementation of ann
+
 ### notes on logging
 - tracing layer for grpc like [this](https://docs.rs/tower-http/latest/tower_http/trace/struct.TraceLayer.html#method.new_for_grpc)  
   - or we can use the `interceptor` in the server init to inject the logging middleware
 - we probably want 1) gRPC request-level logs, and 2) logging the internals through #\[instrument\]
 
 conceptual:
-* familiarize myself with tokio ecosystem (tonic, hyper, axum)
-* review async rust
-* multi-service k8s deployments (tonic grpc server, typescript(?) frontend, axum backend, db, buckets)
+- familiarize myself with tokio ecosystem (tonic, hyper, axum)
+- review async rust
+- multi-service k8s deployments (tonic grpc server, typescript(?) frontend, axum backend, db, buckets)
 
 ## todos 
 - [x] [grpc basics](https://grpc.io/docs/languages/python/basics/) with examples 
