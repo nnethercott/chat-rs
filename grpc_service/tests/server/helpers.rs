@@ -1,6 +1,9 @@
 use grpc_service::{
-    ModelSpec, inferencer_client::InferencerClient, inferencer_server::InferencerServer,
-    server::ModelServer, server::generate_random_registry,
+    ModelSpec,
+    config::get_config,
+    inferencer_client::InferencerClient,
+    inferencer_server::InferencerServer,
+    server::{ModelServer, connect_to_db, generate_random_registry},
 };
 use std::{net::SocketAddr, time::Duration};
 use tokio::time;
@@ -45,8 +48,9 @@ pub async fn spawn_server() -> TestServer {
     let addr = "[::1]:50051";
     let socket_addr: SocketAddr = addr.parse().unwrap();
 
-    // FIXME: get client
-    let model_server = ModelServer::new(pg_client);
+    let config = get_config().unwrap();
+    let pgpool = connect_to_db(&config.db).await.unwrap();
+    let model_server = ModelServer::new(pgpool);
 
     // model server with fake registry
     tokio::spawn(async move {

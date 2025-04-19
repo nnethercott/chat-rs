@@ -1,14 +1,15 @@
 use crate::{
-    Error, InferenceRequest, InferenceResponse, ModelSpec, ModelType,
-    config::Settings,
+    Error as CrateError, InferenceRequest, InferenceResponse, ModelSpec, ModelType,
+    config::{DatabaseConfig, Settings},
     inferencer_server::{Inferencer, InferencerServer},
 };
-use std::sync::Arc;
+use deadpool_postgres::{Pool, Runtime};
 use tokio::sync::mpsc;
-use tokio_postgres::Client;
+use tokio_postgres::NoTls;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
+use tracing::warn;
 use uuid::Uuid;
 
 pub fn generate_random_registry() -> Vec<ModelSpec> {
@@ -20,16 +21,63 @@ pub fn generate_random_registry() -> Vec<ModelSpec> {
         .collect()
 }
 
+pub async fn connect_to_db(config: &DatabaseConfig) -> Result<Pool, CrateError> {
+    Ok(config
+        .pg
+        .create_pool(Some(Runtime::Tokio1), NoTls)
+        .map_err(|_| anyhow::anyhow!("failed to connect to db"))?)
+}
+
+// TODO: check out Dust's code to implement something similar
+// impl FromSql for ModelSpec {
+//     fn from_sql(
+//         ty: &tokio_postgres::types::Type,
+//         raw: &'a [u8],
+//     ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+//         todo!()
+//     }
+//
+//     fn accepts(ty: &tokio_postgres::types::Type) -> bool {
+//         todo!()
+//     }
+// }
+
+// TODO: maybe define trait for BackendServer or something ...
 pub struct ModelServer {
     pub registry: Vec<ModelSpec>,
-    pub pg_client: Arc<Client>,
+    pg_pool: Pool,
 }
+
 impl ModelServer {
-    pub fn new(pg_client: Client) -> Self {
-        Self {
-            pg_client: Arc::new(pg_client),
+    pub fn new(pg_pool: Pool) -> Self {
+        ModelServer {
+            pg_pool,
             registry: vec![],
         }
+    }
+
+    async fn fetch_models(&mut self) -> Result<(), CrateError> {
+        match self.pg_pool.get().await {
+            Ok(client) => {
+                // disgusting
+                if let Ok(rows) = client.query("SELECT * FROM models", &[]).await {
+                    let models: Vec<ModelSpec> = rows
+                        .into_iter()
+                        .map(|r| {
+                            let model_id: String = r.get::<usize, String>(0);
+                            let model_type: i32 = r.get::<usize, i32>(1);
+                            ModelSpec {
+                                model_id,
+                                model_type,
+                            }
+                        })
+                        .collect();
+                    self.registry = models;
+                }
+            }
+            Err(_) => warn!("failed to get reader from pool"),
+        }
+        Ok(())
     }
 }
 
@@ -78,7 +126,7 @@ impl<T> MakeSpan<T> for ServerMakeSpan {
     }
 }
 
-pub async fn run_server(config: Settings, pg_client: tokio_postgres::Client) -> Result<(), Error> {
+pub async fn run_server(config: Settings, pg_pool: Pool) -> Result<(), CrateError> {
     let socket_addr = config.server.addr().parse().unwrap();
 
     // health
@@ -93,7 +141,8 @@ pub async fn run_server(config: Settings, pg_client: tokio_postgres::Client) -> 
         .build_v1alpha()
         .unwrap();
 
-    let model_server = ModelServer::new(pg_client);
+    let mut model_server = ModelServer::new(pg_pool);
+    model_server.fetch_models().await?;
 
     Server::builder()
         // add tracing layer

@@ -50,11 +50,7 @@ impl ServerConfig {
 
 #[derive(Deserialize, Debug)]
 pub struct DatabaseConfig {
-    pub host: String,
-    pub port: u16,
-    pub db_name: String,
-    pub username: String,
-    pub password: String,
+    pub pg: deadpool_postgres::Config,
 }
 
 pub enum Env {
@@ -96,6 +92,7 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
 
         Config::builder()
             .add_source(config::File::from(config_file))
+            .add_source(config::Environment::default().separator("__"))
             .build()?
     };
 
