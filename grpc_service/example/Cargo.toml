@@ -3,6 +3,10 @@ name = "example"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+path = "./src/main.rs"
+name = "example"
+
 [dependencies]
 grpc_service = { path = "../" }
 tonic = "0.13.0"

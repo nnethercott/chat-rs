@@ -2,11 +2,13 @@ syntax="proto3";
 package inferenceservice;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
 
 service Inferencer{
   rpc RunInference(InferenceRequest) returns (InferenceResponse);
   rpc ListModels(google.protobuf.Empty) returns (stream ModelSpec);
   // rpc runBatchedInference(stream InferenceRequest) returns (stream InferenceResponse);
+  rpc AddModels(stream ModelSpec) returns (google.protobuf.UInt64Value);
 }
 
 enum ModelType{

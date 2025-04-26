@@ -1,11 +1,15 @@
 use std::{
     env::{self},
+    path::Path,
     str::FromStr,
 };
 
 use config::Config;
 use serde::{Deserialize, Deserializer};
 use tracing::Level;
+
+// implements deserialize already
+pub type DatabaseConfig = deadpool_postgres::Config;
 
 #[derive(Deserialize, Debug)]
 pub struct Settings {
@@ -48,11 +52,6 @@ impl ServerConfig {
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct DatabaseConfig {
-    pub pg: deadpool_postgres::Config,
-}
-
 pub enum Env {
     Local,
     Production,
@@ -85,16 +84,19 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
         .try_into()
         .expect("failed TryInto<Env>");
 
-    let c = {
-        let config_file = env::current_dir()
-            .unwrap()
-            .join(format!("grpc_service/config/{}.yaml", environ.to_string()));
-
-        Config::builder()
-            .add_source(config::File::from(config_file))
-            .add_source(config::Environment::default().separator("__"))
-            .build()?
+    let config_file = match env::var("CONFIG_FILE") {
+        Ok(f) => Path::new(&f).to_path_buf(),
+        Err(_) => env::current_dir().unwrap().join(format!(
+            "{}/config/{}.yaml",
+            env!("CARGO_CRATE_NAME"),
+            environ.to_string()
+        )),
     };
+
+    let c = Config::builder()
+        .add_source(config::File::from(config_file))
+        .add_source(config::Environment::default().separator("__"))
+        .build()?;
 
     c.try_deserialize()
 }

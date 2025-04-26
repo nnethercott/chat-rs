@@ -1,7 +1,7 @@
 -- Add migration script here
-CREATE TYPE ModelType as ENUM('image', 'text');
+CREATE TYPE modelspec as (model_id TEXT, model_type integer);
 
 CREATE TABLE IF NOT EXISTS models (
-  model_id uuid, 
-  model_type ModelType
+  spec modelspec,
+  UNIQUE(spec)
 );

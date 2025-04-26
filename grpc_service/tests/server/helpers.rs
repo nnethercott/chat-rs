@@ -5,8 +5,8 @@ use grpc_service::{
     inferencer_server::InferencerServer,
     server::{ModelServer, connect_to_db, generate_random_registry},
 };
-use std::{net::SocketAddr, time::Duration};
-use tokio::time;
+use std::{env, net::SocketAddr, time::Duration};
+use tokio::{net::TcpListener, time};
 use tokio_stream::StreamExt;
 use tonic::{
     Request,
@@ -20,12 +20,20 @@ pub struct TestServer {
 
 impl TestServer {
     pub async fn new(addr: String) -> Self {
-        // BAD ? sleep to allow server spawn
+        // BAD ? sleep to allow server spawn (could loop)
         time::sleep(Duration::from_millis(10)).await;
         let client = InferencerClient::connect(format!("http://{}", addr))
             .await
             .unwrap();
         Self { client }
+    }
+
+    pub async fn add_models_to_registry(&mut self, models: Vec<ModelSpec>) -> u64 {
+        self.client
+            .add_models(tokio_stream::iter(models))
+            .await
+            .unwrap()
+            .into_inner()
     }
 
     pub async fn get_registry_models(&mut self) -> Vec<ModelSpec> {
@@ -43,27 +51,37 @@ impl TestServer {
     }
 }
 
-pub async fn spawn_server() -> TestServer {
-    // TODO: randomize port & read from config
-    let addr = "[::1]:50051";
-    let socket_addr: SocketAddr = addr.parse().unwrap();
+fn set_config_env_var() {
+    // wokrdir in tests different than main crate
+    let config_path = env::current_dir()
+        .unwrap()
+        .join(format!("config/local.yaml"));
 
+    unsafe {
+        env::set_var("CONFIG_FILE", &config_path);
+    }
+}
+
+pub async fn spawn_server() -> TestServer {
+    set_config_env_var();
+
+    //TODO: modify config to create new table for tests
     let config = get_config().unwrap();
     let pgpool = connect_to_db(&config.db).await.unwrap();
     let model_server = ModelServer::new(pgpool);
+
+    // set listener on random free port
+    let listener = TcpListener::bind("[::1]:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
 
     // model server with fake registry
     tokio::spawn(async move {
         Server::builder()
             .add_service(InferencerServer::new(model_server))
-            .serve(socket_addr)
+            .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener))
             .await
             .unwrap();
     });
 
-    TestServer::new(addr.to_owned()).await
+    TestServer::new(addr.to_string()).await
 }
-
-// async fn ensure_server_ready(client: &InferencerClient){
-//     todo!()
-// }

@@ -1,5 +1,5 @@
 use grpc_service::{
-    Error as CrateError,
+    Error,
     config::get_config,
     server::{connect_to_db, run_server},
 };
@@ -8,7 +8,7 @@ use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
-async fn main() -> Result<(), CrateError> {
+async fn main() -> Result<(), Error> {
     let config = get_config().expect("failed to build config");
     let log_level = config.log_level.clone().as_str();
 
@@ -27,7 +27,7 @@ async fn main() -> Result<(), CrateError> {
 
     let handle = tokio::spawn(async move {
         info!("starting server...");
-        debug!(config=?config.server.addr());
+        debug!(config=?config);
 
         if let Err(e) = run_server(config, pgpool).await {
             error!(error=%e, "server error");
