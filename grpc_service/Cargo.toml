@@ -22,7 +22,7 @@ deadpool = "0.12.2"
 deadpool-postgres = { version = "0.14.1", features=["serde", "rt_tokio_1"] }
 thiserror = "2.0.12"
 prost = { version = "0.13.5", default-features=false }
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "signal"] }
 tokio-postgres = "0.7.13"
 tokio-stream = "0.1.17"
 tonic = { version = "0.13.0" }

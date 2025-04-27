@@ -1,3 +1,4 @@
+
 use crate::{
     Error, InferenceRequest, InferenceResponse, ModelSpec, ModelType,
     config::{DatabaseConfig, Settings},
@@ -5,12 +6,15 @@ use crate::{
     pg::PgModelSpec,
 };
 use deadpool_postgres::{Pool, Runtime};
-use tokio::sync::{Mutex, mpsc};
+use tokio::{
+    signal::{self, unix::SignalKind},
+    sync::{Mutex, mpsc},
+};
 use tokio_postgres::NoTls;
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
-use tracing::{error, warn};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 pub fn generate_random_registry() -> Vec<ModelSpec> {
@@ -67,8 +71,6 @@ impl ModelServer {
 
     async fn add_models(&self, models: Vec<ModelSpec>) -> anyhow::Result<u64> {
         let values: Vec<PgModelSpec> = models.into_iter().map(PgModelSpec::from).collect();
-
-        // let query = format!("INSERT INTO models (spec) VALUES {}", models.iter().)
 
         let n_rows = match self.pg_pool.get().await {
             Ok(client) => {
@@ -154,7 +156,23 @@ impl<T> MakeSpan<T> for ServerMakeSpan {
     }
 }
 
-pub async fn run_server(config: Settings, pg_pool: Pool) -> Result<(), Error> {
+async fn graceful_shutdown() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c().await.unwrap();
+    };
+    let sigterm = async {
+        signal::unix::signal(SignalKind::terminate())
+            .unwrap()
+            .recv()
+            .await;
+    };
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = sigterm => {},
+    }
+}
+
+pub async fn run_server(config: Settings) -> Result<(), Error> {
     let socket_addr = config.server.addr().parse().unwrap();
 
     // health
@@ -169,17 +187,30 @@ pub async fn run_server(config: Settings, pg_pool: Pool) -> Result<(), Error> {
         .build_v1alpha()
         .unwrap();
 
+    // establish connection to db pool
+    let pg_pool = connect_to_db(&config.db).await?;
+
     let model_server = ModelServer::new(pg_pool);
     model_server.fetch_models().await?;
 
-    Server::builder()
+    let server = Server::builder()
         // add tower tracing layer for requests
         .layer(TraceLayer::new_for_grpc().make_span_with(ServerMakeSpan))
         // add service layers -> [ml, reflection, health]
         .add_service(InferencerServer::new(model_server))
         .add_service(reflection_service)
-        .add_service(health_service)
-        .serve(socket_addr)
+        .add_service(health_service);
+
+    let shutdown = async {
+        graceful_shutdown().await;
+        info!("shutting down server...");
+    };
+
+    info!("starting server...");
+    debug!(config=?config);
+
+    server
+        .serve_with_shutdown(socket_addr, shutdown)
         .await
         .map_err(|e| Status::internal(format!("server failed to start: {e}")))?;
 

@@ -3,9 +3,9 @@ use grpc_service::{
     config::get_config,
     inferencer_client::InferencerClient,
     inferencer_server::InferencerServer,
-    server::{ModelServer, connect_to_db, generate_random_registry},
+    server::{ModelServer, connect_to_db},
 };
-use std::{env, net::SocketAddr, time::Duration};
+use std::{env, time::Duration};
 use tokio::{net::TcpListener, time};
 use tokio_stream::StreamExt;
 use tonic::{

@@ -1,9 +1,9 @@
 use grpc_service::{
     Error,
     config::get_config,
-    server::{connect_to_db, run_server},
+    server::run_server,
 };
-use tracing::{debug, error, info};
+use tracing::error;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -22,21 +22,9 @@ async fn main() -> Result<(), Error> {
         .with(EnvFilter::try_from_default_env().unwrap_or(log_level.into()))
         .init();
 
-    // establish connection pool to db
-    let pgpool = connect_to_db(&config.db).await?;
-
-    let handle = tokio::spawn(async move {
-        info!("starting server...");
-        debug!(config=?config);
-
-        if let Err(e) = run_server(config, pgpool).await {
-            error!(error=%e, "server error");
-        };
-    });
-
-    tokio::select! {
-        _ = handle => {},
-    }
+    if let Err(e) = run_server(config).await {
+        error!(error=%e, "server error");
+    };
 
     Ok(())
 }
