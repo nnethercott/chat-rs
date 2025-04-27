@@ -1,0 +1,22 @@
+[package]
+name = "web_service"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "./src/lib.rs"
+
+[[bin]]
+path = "./src/main.rs"
+name = "web"
+
+[dependencies]
+config = { version = "0.15.11", default-features = false, features=['yaml'] }
+tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "signal"] }
+serde = { version = "1.0.219", features=["derive"] }
+axum = "0.8.3"
+anyhow = "1.0.98"
+tonic = "0.13.0"
+thiserror = "2.0.12"
+grpc_service = {path="../grpc_service/"}
+futures = "0.3.31"
