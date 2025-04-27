@@ -25,6 +25,14 @@ tangible:
 - lightweight models would be better for testing locally; *embedding*, xgboost, time series models, <1b llms, etc.
   - need a **use case**
 
+## web 
+- TODO: figure out how we can configure num replicas of the site ...
+  - is this done at the tokio level or through k8s deployments
+- can use a redis or sqlite instance tied to the session id  of a user to store conversation history server-side
+  - might need a storage layer ...
+- share the grpc client through an app state
+- grafana + otel + prometheus for metrics like latency, token throughput, etc
+- in a v2: websocket or chunked in routes/chat to simulate real-time chat
 
 ### notes on logging
 - tracing layer for grpc like [this](https://docs.rs/tower-http/latest/tower_http/trace/struct.TraceLayer.html#method.new_for_grpc)  

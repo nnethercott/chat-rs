@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
 members = [
-  "grpc_service",
+  "grpc_service", "inference_core", "web_service",
   # "grpc_service/example"
 ]
