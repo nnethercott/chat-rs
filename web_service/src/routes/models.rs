@@ -1,14 +1,13 @@
 use axum::{extract::State, Json};
-use crate::{errors::WebError, AppState};
+use crate::{Result, server::AppState};
 use futures::StreamExt;
 
-pub async fn list_models(State(client): State<AppState>) -> Result<Json<Vec<String>>, WebError> {
+pub async fn list_models(State(client): State<AppState>) -> Result<Json<Vec<String>>> {
     let stream = client
         .lock()
         .await
         .list_models(())
-        .await
-        .map_err(WebError::GrpcError)?
+        .await?
         .into_inner();
 
     let models: Vec<String> = stream
