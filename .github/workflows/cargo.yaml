@@ -1,7 +1,6 @@
 name: cargo checks
 # TODO: change behaviour for checks vs formatting?
 on:
-  push:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
