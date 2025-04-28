@@ -148,9 +148,9 @@ impl<T> MakeSpan<T> for ServerMakeSpan {
     fn make_span(&mut self, request: &http::Request<T>) -> tracing::Span {
         tracing::span!(
             tracing::Level::INFO,
-            "grpc request",
+            "tonic_grpc_request",
             method= %request.method(),
-            resource = %request.uri().path(),
+            uri = %request.uri().path(),
             span_id = %Uuid::new_v4(), // FIXME: hash this and hexdump
         )
     }
