@@ -9,21 +9,23 @@ use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, MakeSpan, TraceLaye
 use tracing::{Level, error, info};
 use uuid::Uuid;
 
+type Inner = InferencerClient<Channel>;
+
 // TODO: maybe generalize this to ANY grpc service with generics
 #[derive(Clone, Default)]
 pub struct AppState {
-    inner: Option<Arc<Mutex<InferencerClient<Channel>>>>,
+    inner: Option<Arc<Mutex<Inner>>>,
 }
 
 impl AppState {
-    pub fn new(client: InferencerClient<Channel>) -> Self {
+    pub fn new(client: Inner) -> Self {
         Self {
             inner: Some(Arc::new(Mutex::new(client))),
         }
     }
 
-    // Deref won't work here
-    pub fn client(&self) -> Option<&Mutex<InferencerClient<Channel>>> {
+    // since deref won't work here
+    pub fn client(&self) -> Option<&Mutex<Inner>> {
         self.inner.as_deref()
     }
 }

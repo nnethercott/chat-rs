@@ -1,4 +1,5 @@
 use axum::response::{IntoResponse, Response};
+use http::StatusCode;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -13,7 +14,10 @@ pub enum Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("something went wrong: {}", self)
+        ).into_response()
     }
 }
 
