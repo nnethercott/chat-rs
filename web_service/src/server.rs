@@ -2,22 +2,29 @@ use crate::Result;
 use crate::{config::Settings, routes::app_routes};
 use axum::Router;
 use grpc_service::inferencer_client::InferencerClient;
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::transport::Channel;
-use tower_http::trace::{
-    DefaultOnRequest, DefaultOnResponse, MakeSpan, TraceLayer,
-};
+use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, MakeSpan, TraceLayer};
 use tracing::{Level, error, info};
 use uuid::Uuid;
 
-#[derive(Clone)]
-pub(crate) struct AppState(Arc<Mutex<InferencerClient<Channel>>>);
+// TODO: maybe generalize this to ANY grpc service with generics
+#[derive(Clone, Default)]
+pub struct AppState {
+    inner: Option<Arc<Mutex<InferencerClient<Channel>>>>,
+}
 
-impl Deref for AppState {
-    type Target = Mutex<InferencerClient<Channel>>;
-    fn deref(&self) -> &Self::Target {
-        &self.0.deref()
+impl AppState {
+    pub fn new(client: InferencerClient<Channel>) -> Self {
+        Self {
+            inner: Some(Arc::new(Mutex::new(client))),
+        }
+    }
+
+    // Deref won't work here
+    pub fn client(&self) -> Option<&Mutex<InferencerClient<Channel>>> {
+        self.inner.as_deref()
     }
 }
 
@@ -43,9 +50,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(
-        config: Settings,
-    ) -> Result<Self> {
+    pub fn new(config: Settings) -> Result<Self> {
         // /!\ Add state in App::run() otherwise won't compile;
         // https://docs.rs/axum/latest/axum/struct.Router.html#method.with_state
         let app = Router::new()
@@ -71,15 +76,21 @@ impl App {
         // connect to grpc service
         let inference_client =
             InferencerClient::connect(format!("http://{}", self.config.grpc.addr())).await?;
-        let state = AppState(Arc::new(Mutex::new(inference_client)));
+        let state = AppState::new(inference_client);
 
         // bind to tcp port
-        let listener = TcpListener::bind(self.config.server.addr()).await.expect("port in use");
+        let listener = TcpListener::bind(self.config.server.addr())
+            .await
+            .expect("port in use");
 
         info!("starging web server...");
         if let Err(e) = axum::serve(listener, self.app.with_state(state)).await {
             error!(error=?e);
         }
         Ok(())
+    }
+
+    pub fn into_router(self) -> Router<AppState> {
+        self.app
     }
 }

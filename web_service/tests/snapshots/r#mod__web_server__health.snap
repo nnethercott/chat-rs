@@ -1,0 +1,5 @@
+---
+source: web_service/tests/web_server.rs
+expression: bytes
+---
+b""
