@@ -60,8 +60,7 @@ impl Inferencer for MockGrpc {
 }
 
 // https://github.com/hyperium/tonic/blob/master/examples/src/mock/mock.rs
-#[tokio::test]
-pub async fn main(){
+pub async fn spawn_and_connect_grpc() -> InferencerClient<Channel> {
     // these become components of our channel
     let (client, server) = tokio::io::duplex(1024);
 
@@ -70,6 +69,7 @@ pub async fn main(){
         Server::builder()
             .add_service(InferencerServer::new(inferencer))
             .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
     });
 
     let mut client = Some(client);
@@ -90,9 +90,5 @@ pub async fn main(){
         .await
         .unwrap();
 
-    let mut client = InferencerClient::new(channel);
-    let request = tonic::Request::new(());
-
-    let res = client.list_models(request).await.unwrap();
-    dbg!(res);
+    InferencerClient::new(channel)
 }
