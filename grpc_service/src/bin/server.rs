@@ -1,8 +1,4 @@
-use grpc_service::{
-    Error,
-    config::get_config,
-    server::run_server,
-};
+use grpc_service::{Error, config::get_config, server::run_server};
 use tracing::error;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};

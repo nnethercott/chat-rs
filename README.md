@@ -28,6 +28,7 @@ tangible:
 ## web 
 - TODO: figure out how we can configure num replicas of the site ...
   - is this done at the tokio level or through k8s deployments
+  - for each replica we'll need an internal IP used in the pod network, would this come from an env variable override of our config through a ConfigMap?
 - can use a redis or sqlite instance tied to the session id  of a user to store conversation history server-side
   - might need a storage layer ...
 - share the grpc client through an app state

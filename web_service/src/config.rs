@@ -1,3 +1,5 @@
+#![allow(clippy::to_string_trait_impl)]
+
 use std::{
     env::{self},
     path::Path,
@@ -9,7 +11,7 @@ use serde::Deserialize;
 type RedisConfig = ServerConfig;
 type GRPCConfig = ServerConfig;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct Settings {
     #[serde(alias = "web")]
     pub server: ServerConfig,
@@ -17,13 +19,7 @@ pub struct Settings {
     pub grpc: GRPCConfig,
 }
 
-impl Settings {
-    pub fn new() -> Self {
-        todo!();
-    }
-}
-
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct ServerConfig {
     pub host: String,
     pub port: String,

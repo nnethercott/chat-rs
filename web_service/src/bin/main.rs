@@ -1,5 +1,5 @@
 use tracing_subscriber::{self, EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
-use web_service::{config::get_config, run_app};
+use web_service::{config::get_config, server::App};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -11,6 +11,6 @@ async fn main() -> anyhow::Result<()> {
         .with(EnvFilter::try_from_default_env().unwrap_or("info".into()))
         .init();
 
-    run_app(config).await?;
+    App::new(config)?.run().await?;
     Ok(())
 }

@@ -5,15 +5,15 @@ use postgres_types::{FromSql, ToSql};
 #[derive(Debug, ToSql, FromSql)]
 #[postgres(name = "modelspec")]
 pub struct PgModelSpec {
-    model_id: String,
-    model_type: i32,
+    pub model_id: String,
+    pub model_type: i32,
 }
 
-impl Into<ModelSpec> for PgModelSpec {
-    fn into(self) -> ModelSpec {
+impl From<PgModelSpec> for ModelSpec {
+    fn from(value: PgModelSpec) -> Self {
         ModelSpec {
-            model_id: self.model_id,
-            model_type: self.model_type,
+            model_id: value.model_id,
+            model_type: value.model_type,
         }
     }
 }

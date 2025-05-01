@@ -1,4 +1,3 @@
-use thiserror;
 use tonic::Status;
 
 #[derive(Debug, thiserror::Error)]

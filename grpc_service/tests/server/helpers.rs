@@ -55,7 +55,7 @@ fn set_config_env_var() {
     // wokrdir in tests different than main crate
     let config_path = env::current_dir()
         .unwrap()
-        .join(format!("config/local.yaml"));
+        .join("config/local.yaml");
 
     unsafe {
         env::set_var("CONFIG_FILE", &config_path);

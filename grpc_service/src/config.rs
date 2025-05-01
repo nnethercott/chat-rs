@@ -1,3 +1,5 @@
+#![allow(clippy::to_string_trait_impl)]
+
 use std::{
     env::{self},
     path::Path,
@@ -20,12 +22,6 @@ pub struct Settings {
         deserialize_with = "try_deserialize_loglevel"
     )]
     pub log_level: tracing::Level,
-}
-
-impl Settings {
-    pub fn new() -> Self {
-        todo!();
-    }
 }
 
 #[derive(Deserialize, Debug)]

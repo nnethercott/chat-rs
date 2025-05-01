@@ -1,14 +1,23 @@
 use axum::response::{IntoResponse, Response};
+use http::StatusCode;
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(thiserror::Error, Debug)]
-pub enum WebError {
+pub enum Error {
     #[error(transparent)]
-    GrpcError(tonic::Status),
+    GrpcStubError(#[from] tonic::Status),
+
+    #[error(transparent)]
+    GrpcConnectionError(#[from] tonic::transport::Error),
 }
 
-impl IntoResponse for WebError {
+impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("something went wrong: {}", self),
+        )
+            .into_response()
     }
 }
-
