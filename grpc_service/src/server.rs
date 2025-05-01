@@ -1,4 +1,3 @@
-
 use crate::{
     Error, InferenceRequest, InferenceResponse, ModelSpec, ModelType,
     config::{DatabaseConfig, Settings},

@@ -9,15 +9,15 @@ pub enum Error {
     GrpcStubError(#[from] tonic::Status),
 
     #[error(transparent)]
-    GrpcConnectionError(#[from] tonic::transport::Error)
+    GrpcConnectionError(#[from] tonic::transport::Error),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("something went wrong: {}", self)
-        ).into_response()
+            format!("something went wrong: {}", self),
+        )
+            .into_response()
     }
 }
-

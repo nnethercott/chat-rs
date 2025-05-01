@@ -14,7 +14,7 @@ pub async fn list_models(State(state): State<AppState>) -> Result<Json<Vec<Strin
                 .await;
 
             Ok(Json(models))
-        },
-        None =>  todo!()
+        }
+        None => todo!(),
     }
 }

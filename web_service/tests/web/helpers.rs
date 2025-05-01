@@ -42,14 +42,14 @@ impl Inferencer for MockGrpc {
 
     async fn add_models(
         &self,
-        request: tonic::Request<Streaming<ModelSpec>>,
+        _request: tonic::Request<Streaming<ModelSpec>>,
     ) -> Result<Response<u64>, Status> {
         Ok(Response::new(42))
     }
 
     async fn run_inference(
         &self,
-        request: Request<InferenceRequest>,
+        _request: Request<InferenceRequest>,
     ) -> Result<Response<InferenceResponse>, Status> {
         let resp = InferenceResponse {
             logits: vec![1.0, 2.0, 3.0],

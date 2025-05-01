@@ -3,4 +3,4 @@ pub mod errors;
 pub mod routes;
 pub mod server;
 
-pub use errors::{Result, Error};
+pub use errors::{Error, Result};

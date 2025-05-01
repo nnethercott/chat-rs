@@ -1,18 +1,14 @@
-use std::io::Read;
-
 use axum::{
-    Router,
     body::Body,
     http::{self, Request, StatusCode},
 };
 use http_body_util::BodyExt;
-use insta::{assert_binary_snapshot, assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
+use insta::assert_debug_snapshot;
 use tower::ServiceExt;
 use web_service::{
     config::Settings,
     server::{App, AppState},
 };
-
 use crate::helpers::spawn_and_connect_grpc;
 
 // a test not using axum-test
@@ -62,5 +58,4 @@ async fn test_list_models_endpoint() {
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
     dbg!(&bytes);
     assert_debug_snapshot!(bytes, @r#"b"[\"model\"]""#);
-
 }
