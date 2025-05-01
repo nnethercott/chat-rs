@@ -1,92 +1,59 @@
 use crate::{
-    Error, InferenceRequest, InferenceResponse, ModelSpec, ModelType,
-    config::{DatabaseConfig, Settings},
+    Error, InferenceRequest, InferenceResponse, ModelSpec,
+    config::Settings,
     inferencer_server::{Inferencer, InferencerServer},
-    pg::PgModelSpec,
 };
-use deadpool_postgres::{Pool, Runtime};
+use sqlx::{PgPool, QueryBuilder};
 use tokio::{
     signal::{self, unix::SignalKind},
     sync::{Mutex, mpsc},
 };
-use tokio_postgres::NoTls;
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-pub fn generate_random_registry() -> Vec<ModelSpec> {
-    (0..32)
-        .map(|_| ModelSpec {
-            model_id: Uuid::new_v4().to_string(),
-            model_type: ModelType::Image.into(),
-        })
-        .collect()
-}
-
-pub async fn connect_to_db(config: &DatabaseConfig) -> Result<Pool, Error> {
-    Ok(config
-        .create_pool(Some(Runtime::Tokio1), NoTls)
-        .map_err(|_| anyhow::anyhow!("failed to connect to db"))?)
-}
-
 pub struct ModelServer {
     pub registry: Mutex<Vec<ModelSpec>>,
-    pg_pool: Pool,
+    pg_pool: PgPool,
 }
 
 impl ModelServer {
-    pub fn new(pg_pool: Pool) -> Self {
+    pub fn new(pg_pool: PgPool) -> Self {
         ModelServer {
             pg_pool,
             registry: Mutex::new(vec![]),
         }
     }
 
-    async fn fetch_models(&self) -> anyhow::Result<()> {
-        match self.pg_pool.get().await {
-            Ok(client) => {
-                if let Ok(rows) = client.query("SELECT * FROM models", &[]).await {
-                    let models: Vec<ModelSpec> = rows
-                        .into_iter()
-                        .map(|r| {
-                            let wrapper: PgModelSpec = r.get(0);
-                            wrapper.into()
-                        })
-                        .collect();
-                    // update registry
-                    {
-                        let mut lock = self.registry.lock().await;
-                        *lock = models;
-                    }
-                }
-            }
-            _ => return Err(anyhow::anyhow!("failed to get reader from pool")),
-        };
+    async fn fetch_models(&self) -> sqlx::Result<()> {
+        let models: Vec<ModelSpec> = sqlx::query_as::<_, ModelSpec>(r#"SELECT * FROM MODELS"#)
+            .fetch_all(&self.pg_pool)
+            .await?;
+
+        *(self.registry.lock().await) = models;
 
         Ok(())
     }
 
-    async fn add_models(&self, models: Vec<ModelSpec>) -> anyhow::Result<u64> {
-        let values: Vec<PgModelSpec> = models.into_iter().map(PgModelSpec::from).collect();
+    async fn add_models(&self, models: Vec<ModelSpec>) -> sqlx::Result<u64> {
+        let mut query_builder = QueryBuilder::new("INSERT INTO models(model_id, model_type)");
 
-        let n_rows = match self.pg_pool.get().await {
-            Ok(client) => {
-                let stmt = client
-                    .prepare("INSERT INTO models(spec) SELECT unnest($1::modelspec[])")
-                    .await
-                    .unwrap();
+        // todo! maybe look into unnest
+        query_builder.push_values(models, |mut b, model| {
+            b.push_bind(model.model_id).push_bind(model.model_type);
+        });
 
-                client
-                    .execute(&stmt, &[&values])
-                    .await
-                    .map_err(|e| anyhow::anyhow!(e))?
-            }
-            Err(_) => return Err(anyhow::anyhow!("failed to get reader from pool")),
-        };
+        let n_rows = query_builder
+            .build()
+            .execute(&self.pg_pool)
+            .await?
+            .rows_affected();
 
-        // refresh model registry
+        dbg!(n_rows);
+
+        // refresh registry with new models
         self.fetch_models().await?;
         Ok(n_rows)
     }
@@ -186,10 +153,8 @@ pub async fn run_server(config: Settings) -> Result<(), Error> {
         .build_v1alpha()
         .unwrap();
 
-    // establish connection to db pool
-    let pg_pool = connect_to_db(&config.db).await?;
-
-    let model_server = ModelServer::new(pg_pool);
+    // connect to db and refresh models
+    let model_server = ModelServer::new(config.db.create_pool());
     model_server.fetch_models().await?;
 
     let server = Server::builder()

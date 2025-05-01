@@ -1,3 +1,4 @@
+use crate::helpers::spawn_and_connect_grpc;
 use axum::{
     body::Body,
     http::{self, Request, StatusCode},
@@ -9,7 +10,6 @@ use web_service::{
     config::Settings,
     server::{App, AppState},
 };
-use crate::helpers::spawn_and_connect_grpc;
 
 // a test not using axum-test
 #[tokio::test]
