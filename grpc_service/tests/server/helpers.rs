@@ -6,16 +6,25 @@ use grpc_service::{
     server::ModelServer,
 };
 use sqlx::{Connection, Executor, PgConnection, PgPool, postgres::PgConnectOptions};
-use std::{env, time::Duration};
+use std::{env, sync::LazyLock, time::Duration};
 use tokio::{net::TcpListener, sync::oneshot, time};
 use tokio_stream::StreamExt;
 use tonic::{
     Request,
     transport::{Channel, Server},
 };
+use tracing_bunyan_formatter::JsonStorageLayer;
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
-// TODO: random port and store it here, then connect client in tests
+// tracing
+static TRACING: LazyLock<()> = LazyLock::new(|| {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().json())
+        .with(EnvFilter::try_from_default_env().unwrap_or("info".into()))
+        .init();
+});
+
 pub struct TestServer {
     client: InferencerClient<Channel>,
     tx: Option<oneshot::Sender<()>>,
@@ -113,6 +122,11 @@ fn set_env_vars() {
 }
 
 pub async fn spawn_server() -> TestServer {
+    // set this once
+    if env::var("TEST_LOG").is_ok(){
+        LazyLock::force(&TRACING);
+    }
+
     set_env_vars();
 
     let mut config = get_config().unwrap();
