@@ -4,10 +4,7 @@ use crate::{
     inferencer_server::{Inferencer, InferencerServer},
 };
 use sqlx::{PgPool, QueryBuilder};
-use tokio::{
-    signal::{self, unix::SignalKind},
-    sync::{Mutex, mpsc},
-};
+use tokio::sync::{Mutex, mpsc};
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
@@ -122,22 +119,6 @@ impl<T> MakeSpan<T> for ServerMakeSpan {
     }
 }
 
-async fn graceful_shutdown() {
-    let ctrl_c = async {
-        tokio::signal::ctrl_c().await.unwrap();
-    };
-    let sigterm = async {
-        signal::unix::signal(SignalKind::terminate())
-            .unwrap()
-            .recv()
-            .await;
-    };
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = sigterm => {},
-    }
-}
-
 pub async fn run_server(config: Settings) -> Result<(), Error> {
     let socket_addr = config.server.addr().parse().unwrap();
 
@@ -165,16 +146,11 @@ pub async fn run_server(config: Settings) -> Result<(), Error> {
         .add_service(reflection_service)
         .add_service(health_service);
 
-    let shutdown = async {
-        graceful_shutdown().await;
-        info!("shutting down server...");
-    };
-
     info!("starting server...");
     debug!(config=?config);
 
     server
-        .serve_with_shutdown(socket_addr, shutdown)
+        .serve(socket_addr)
         .await
         .map_err(|e| Status::internal(format!("server failed to start: {e}")))?;
 

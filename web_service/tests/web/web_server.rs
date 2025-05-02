@@ -1,8 +1,10 @@
 use crate::helpers::spawn_and_connect_grpc;
 use axum::{
+    Json,
     body::Body,
     http::{self, Request, StatusCode},
 };
+use grpc_service::ModelSpec;
 use http_body_util::BodyExt;
 use insta::assert_debug_snapshot;
 use tower::ServiceExt;
@@ -52,10 +54,26 @@ async fn test_list_models_endpoint() {
         .await
         .unwrap();
 
+    // assert 200
     assert_eq!(response.status(), StatusCode::OK);
 
-    // empty body but adding this as a reference for later ...
+    // assert payload
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
-    dbg!(&bytes);
-    assert_debug_snapshot!(bytes, @r#"b"[\"model\"]""#);
+    let Json(inner) = Json::<Vec<ModelSpec>>::from_bytes(&bytes).unwrap();
+    assert_debug_snapshot!(inner, @r#"
+    [
+        ModelSpec {
+            model_id: "model1",
+            model_type: Image,
+        },
+        ModelSpec {
+            model_id: "model2",
+            model_type: Text,
+        },
+        ModelSpec {
+            model_id: "model3",
+            model_type: Image,
+        },
+    ]
+    "#);
 }

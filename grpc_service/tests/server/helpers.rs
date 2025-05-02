@@ -13,7 +13,6 @@ use tonic::{
     Request,
     transport::{Channel, Server},
 };
-use tracing_bunyan_formatter::JsonStorageLayer;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
