@@ -26,10 +26,20 @@ impl Inferencer for MockGrpc {
     ) -> Result<Response<Self::ListModelsStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
 
-        let model_list = vec![ModelSpec {
-            model_id: "model".into(),
-            model_type: 0,
-        }];
+        let model_list = vec![
+            ModelSpec {
+                model_id: "model1".into(),
+                model_type: 0,
+            },
+            ModelSpec {
+                model_id: "model2".into(),
+                model_type: 1,
+            },
+            ModelSpec {
+                model_id: "model3".into(),
+                model_type: 0,
+            },
+        ];
 
         tokio::spawn(async move {
             for spec in model_list {

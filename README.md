@@ -6,13 +6,13 @@
 
 ## goals & ideas
 tangible:
-- implement inference server based on gRPC 
+- implement inference server based on gRPC ✅
 - k8s deployment + observability to check balancing with load tests
 - better telemetry
-- tracing and structured logging
-- health check with probing (added later in the deployment to ensure service up and running) 
+- tracing and structured logging ✅
+- health check with probing (added later in the deployment to ensure service up and running) ✅
 - **minio** in deployment as a bucket for storing model weights
-- gRPC health probe k8s 
+- gRPC health probe k8s
   - there's also [this](https://github.com/grpc-ecosystem/grpc-health-probe) cli tool
   - another health endpoint would be the axum server itself
 - pipe/sync logs to an elasticsearch instance ?
@@ -31,7 +31,7 @@ tangible:
   - for each replica we'll need an internal IP used in the pod network, would this come from an env variable override of our config through a ConfigMap?
 - can use a redis or sqlite instance tied to the session id  of a user to store conversation history server-side
   - might need a storage layer ...
-- share the grpc client through an app state
+- share the grpc client through an app state ✅
 - grafana + otel + prometheus for metrics like latency, token throughput, etc
 - in a v2: websocket or chunked in routes/chat to simulate real-time chat
 
@@ -62,6 +62,7 @@ conceptual:
 - [ ] add threadpool/ml inference core crate (using onnxruntime, candle, or burn)
 
 ## notes 
-- to run the server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another
+- to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another
+- running web is done with `cargo run --bin web`
 - to run a health check first spin up the server with `cargo run --bin server` then `grpc-health-probe -addr="[::1]:50051"`
 - to inspect the API we can use Postman with gRPC reflection

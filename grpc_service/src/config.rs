@@ -8,10 +8,31 @@ use std::{
 
 use config::Config;
 use serde::{Deserialize, Deserializer};
+use sqlx::{PgPool, postgres::PgConnectOptions};
 use tracing::Level;
 
 // implements deserialize already
-pub type DatabaseConfig = deadpool_postgres::Config;
+#[derive(Deserialize, Debug)]
+pub struct DatabaseConfig {
+    pub db_name: String,
+    pub user_name: String,
+    pub password: String,
+    pub host: String,
+    pub port: u16,
+}
+
+impl DatabaseConfig {
+    pub fn create_pool(&self) -> PgPool {
+        let opts = PgConnectOptions::new()
+            .host(&self.host)
+            .port(self.port)
+            .database(&self.db_name)
+            .username(&self.user_name)
+            .password(&self.password);
+
+        PgPool::connect_lazy_with(opts)
+    }
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Settings {
@@ -91,7 +112,12 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
 
     let c = Config::builder()
         .add_source(config::File::from(config_file))
-        .add_source(config::Environment::default().separator("__"))
+        .add_source(
+            config::Environment::default()
+                .prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
+        )
         .build()?;
 
     c.try_deserialize()

@@ -18,12 +18,9 @@ path="./src/bin/client.rs"
 anyhow = "1.0.97"
 async-stream = "0.3.6"
 config = { version = "0.15.11", default-features = false, features=['yaml'] }
-deadpool = "0.12.2"
-deadpool-postgres = { version = "0.14.1", features=["serde", "rt_tokio_1"] }
 thiserror = "2.0.12"
-prost = { version = "0.13.5", default-features=false }
+prost = { version = "0.13.5" }
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "signal"] }
-tokio-postgres = "0.7.13"
 tokio-stream = "0.1.17"
 tonic = { version = "0.13.0" }
 tonic-reflection = "0.13.0"
@@ -35,7 +32,20 @@ tracing-bunyan-formatter = "0.3.10"
 uuid = { version = "1.16.0", features=["v4"] }
 http = "1.3.1"
 serde = { version = "1.0.219", features=["derive"] }
-postgres-types = { version = "0.2.9", features = ["derive"] }
+
+[dev-dependencies]
+insta = { version = "1.43.1", features = ["yaml"] }
+
+[dependencies.sqlx]
+version = "0.8.5"
+features = [
+  "runtime-tokio",
+  "tls-native-tls",
+  "macros",
+  "postgres",
+  "derive",
+  "migrate",
+]
 
 [build-dependencies]
 tonic-build = "0.13.0"
