@@ -122,7 +122,7 @@ fn set_env_vars() {
 
 pub async fn spawn_server() -> TestServer {
     // set this once
-    if env::var("TEST_LOG").is_ok(){
+    if env::var("TEST_LOG").is_ok() {
         LazyLock::force(&TRACING);
     }
 

@@ -112,7 +112,12 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
 
     let c = Config::builder()
         .add_source(config::File::from(config_file))
-        .add_source(config::Environment::default().separator("__"))
+        .add_source(
+            config::Environment::default()
+                .prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
+        )
         .build()?;
 
     c.try_deserialize()
