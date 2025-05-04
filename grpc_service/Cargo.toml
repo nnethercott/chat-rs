@@ -20,7 +20,7 @@ async-stream = "0.3.6"
 config = { version = "0.15.11", default-features = false, features=['yaml'] }
 thiserror = "2.0.12"
 prost = { version = "0.13.5" }
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "rt", "signal"] }
 tokio-stream = "0.1.17"
 tonic = { version = "0.13.0" }
 tonic-reflection = "0.13.0"
@@ -32,6 +32,9 @@ tracing-bunyan-formatter = "0.3.10"
 uuid = { version = "1.16.0", features=["v4"] }
 http = "1.3.1"
 serde = { version = "1.0.219", features=["derive"] }
+
+[dependencies.inference_core]
+path = "../inference_core/"
 
 [dev-dependencies]
 insta = { version = "1.43.1", features = ["yaml"] }

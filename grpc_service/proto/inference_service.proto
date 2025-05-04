@@ -9,7 +9,10 @@ service Inferencer{
   rpc ListModels(google.protobuf.Empty) returns (stream ModelSpec);
   // rpc runBatchedInference(stream InferenceRequest) returns (stream InferenceResponse);
   rpc AddModels(stream ModelSpec) returns (google.protobuf.UInt64Value);
+  rpc GenerateStreaming(google.protobuf.StringValue) returns (stream google.protobuf.UInt32Value);
 }
+
+// TODO: make GenerateStreaming arg into openai like payload
 
 enum ModelType{
   IMAGE = 0; 

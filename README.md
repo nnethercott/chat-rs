@@ -8,17 +8,16 @@
 tangible:
 - implement inference server based on gRPC ✅
 - k8s deployment + observability to check balancing with load tests
-- better telemetry
+- better telemetry (otel, tracing)
 - tracing and structured logging ✅
 - health check with probing (added later in the deployment to ensure service up and running) ✅
 - **minio** in deployment as a bucket for storing model weights
-- gRPC health probe k8s
+- gRPC health probe k8s ✅
   - there's also [this](https://github.com/grpc-ecosystem/grpc-health-probe) cli tool
   - another health endpoint would be the axum server itself
 - pipe/sync logs to an elasticsearch instance ?
-- [rust-cache](https://github.com/Swatinem/rust-cache) for reducing gh action times
+- [rust-cache](https://github.com/Swatinem/rust-cache) for reducing gh action times ✅
 - *graceful shutdown* for grpc and web services
-
 - project pivot idea: use the service as an embeddings type generation thing like meilisearch and implement a database
   - could try to do an from-scratch implementation of ann
   - **or** take inspo and use thread/process pool on worker machine to handle incoming inference requests
@@ -54,12 +53,15 @@ conceptual:
 - [x] setup health probe alongside service with tonic-health [docs](https://github.com/hyperium/tonic/tree/master/examples/src/health) 
 - [x] setup db to store model registry (could this be replaced down the line with mlflow?)
 - [x] add reflection
-- [ ] better tests
+- [x] better tests
 - [x] add env files serializing to app config
 - [x] tracing and formatted logs
 - [x] llvm linker
   - [x] read that article on minimizing build times
-- [ ] add threadpool/ml inference core crate (using onnxruntime, candle, or burn)
+- [ ] worker pool for models to serve requests (stateless with redis)
+- [ ] graceful shutdown
+- [ ] basic inference
+- [ ] streaming inference
 
 ## notes 
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another

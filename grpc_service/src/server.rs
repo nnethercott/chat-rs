@@ -1,11 +1,15 @@
+use std::{pin::Pin, sync::Arc};
+
 use crate::{
     Error, InferenceRequest, InferenceResponse, ModelSpec,
     config::Settings,
+    inference_request::Data,
     inferencer_server::{Inferencer, InferencerServer},
 };
+use inference_core::hf::{GenerativeModel, TempModel};
 use sqlx::{PgPool, QueryBuilder};
 use tokio::sync::{Mutex, mpsc};
-use tokio_stream::{StreamExt, wrappers::ReceiverStream};
+use tokio_stream::{Stream, StreamExt, wrappers::ReceiverStream};
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
 use tracing::{debug, error, info, warn};
@@ -100,6 +104,31 @@ impl Inferencer for ModelServer {
         });
 
         Ok(Response::new(n_rows))
+    }
+
+    #[doc = " Server streaming response type for the GenerateStreaming method."]
+    type GenerateStreamingStream =
+        Pin<Box<dyn Stream<Item = Result<u32, Status>> + Send + Sync + 'static>>;
+
+    async fn generate_streaming(
+        &self,
+        request: Request<String>,
+    ) -> std::result::Result<Response<Self::GenerateStreamingStream>, Status> {
+        let data = request.into_inner();
+
+        // replace with .acquire() (maybe atomic bool `busy`)
+        let model = Arc::new(TempModel);
+        let tokens = vec![1, 2, 3, 4, 5];
+
+        let (tx, rx) = mpsc::channel(1024);
+        let adpt = ReceiverStream::new(rx).map(Ok);
+
+        // shove this into a new thread (not really using them but it blocks)
+        tokio::task::spawn(async move {
+            model.generate_stream(tokens, tx).await;
+        });
+
+        Ok(Response::new(Box::pin(adpt)))
     }
 }
 
