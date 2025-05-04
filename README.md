@@ -62,6 +62,7 @@ conceptual:
 - [ ] graceful shutdown
 - [ ] basic inference
 - [ ] streaming inference
+- [ ] update proto for text-only models
 
 ## notes 
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another

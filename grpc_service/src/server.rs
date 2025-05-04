@@ -6,7 +6,7 @@ use crate::{
     inference_request::Data,
     inferencer_server::{Inferencer, InferencerServer},
 };
-use inference_core::hf::{GenerativeModel, TempModel};
+use inference_core::{hf::GenerativeModel, models::qwen::Model as Qwen};
 use sqlx::{PgPool, QueryBuilder};
 use tokio::sync::{Mutex, mpsc};
 use tokio_stream::{Stream, StreamExt, wrappers::ReceiverStream};
@@ -17,15 +17,23 @@ use uuid::Uuid;
 
 pub struct ModelServer {
     pub registry: Mutex<Vec<ModelSpec>>,
+    pub model: Arc<std::sync::Mutex<Qwen>>,
     pg_pool: PgPool,
 }
 
 impl ModelServer {
-    pub fn new(pg_pool: PgPool) -> Self {
-        ModelServer {
+    pub async fn new(pg_pool: PgPool) -> anyhow::Result<Self> {
+        info!("loading model...");
+        let qwen = Qwen::from_pretrained("Qwen/Qwen2-0.5B".into())
+            .await
+            .map_err(|_| Status::internal("failed to load model"))?;
+        info!("model loaded!");
+
+        Ok(ModelServer {
             pg_pool,
+            model: Arc::new(std::sync::Mutex::new(qwen)),
             registry: Mutex::new(vec![]),
-        }
+        })
     }
 
     async fn fetch_models(&self) -> sqlx::Result<()> {
@@ -114,18 +122,14 @@ impl Inferencer for ModelServer {
         &self,
         request: Request<String>,
     ) -> std::result::Result<Response<Self::GenerateStreamingStream>, Status> {
-        let data = request.into_inner();
-
-        // replace with .acquire() (maybe atomic bool `busy`)
-        let model = Arc::new(TempModel);
-        let tokens = vec![1, 2, 3, 4, 5];
+        let prompt = request.into_inner();
 
         let (tx, rx) = mpsc::channel(1024);
         let adpt = ReceiverStream::new(rx).map(Ok);
 
-        // shove this into a new thread (not really using them but it blocks)
-        tokio::task::spawn(async move {
-            model.generate_stream(tokens, tx).await;
+        let mut model = Arc::clone(&self.model);
+        tokio::spawn(async move {
+            model.generate_stream(prompt, tx).await.unwrap();
         });
 
         Ok(Response::new(Box::pin(adpt)))
@@ -164,7 +168,7 @@ pub async fn run_server(config: Settings) -> Result<(), Error> {
         .unwrap();
 
     // connect to db and refresh models
-    let model_server = ModelServer::new(config.db.create_pool());
+    let model_server = ModelServer::new(config.db.create_pool()).await?;
     model_server.fetch_models().await?;
 
     let server = Server::builder()

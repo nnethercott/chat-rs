@@ -30,16 +30,17 @@ impl Deref for HfApiManager {
 // impl GenerativeModel<T: Model>
 #[async_trait]
 pub trait GenerativeModel {
-    async fn generate_stream(&self, input_ids: Tokens, tx: Sender<u32>);
+    async fn generate_stream(&mut self, prompt: String, tx: Sender<u32>) -> anyhow::Result<()>;
 }
 
 pub struct TempModel;
 
 #[async_trait]
 impl GenerativeModel for TempModel {
-    async fn generate_stream(&self, input_ids: Tokens, tx: Sender<u32>) {
-        for i in input_ids.iter() {
-            tx.send(*i).await.ok();
+    async fn generate_stream(&mut self, prompt: String, tx: Sender<u32>) ->anyhow::Result<()>{
+        for i in 0..10 {
+            tx.send(i).await.ok();
         }
+        Ok(())
     }
 }
