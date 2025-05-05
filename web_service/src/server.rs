@@ -3,6 +3,7 @@ use crate::{config::Settings, routes::app_routes};
 use axum::Router;
 use grpc_service::inferencer_client::InferencerClient;
 use std::sync::Arc;
+use tokio::signal;
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::transport::Channel;
 use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, MakeSpan, TraceLayer};
@@ -85,14 +86,46 @@ impl App {
             .await
             .expect("port in use");
 
-        info!("starging web server...");
-        if let Err(e) = axum::serve(listener, self.app.with_state(state)).await {
+        info!("Starting web server...");
+        if let Err(e) = axum::serve(listener, self.app.with_state(state))
+            .with_graceful_shutdown(shutdown())
+            .await
+        {
             error!(error=?e);
+            info!("Shutting down...")
         }
         Ok(())
     }
 
     pub fn into_router(self) -> Router<AppState> {
         self.app
+    }
+}
+
+async fn shutdown() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("[GRACEFUL] shutdown with ctrl-c...")
+        },
+        _ = terminate => {
+            info!("[GRACEFUL] shutdown on kill sig...")
+        },
     }
 }
