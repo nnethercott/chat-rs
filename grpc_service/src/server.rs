@@ -6,7 +6,11 @@ use crate::{
     inference_request::Data,
     inferencer_server::{Inferencer, InferencerServer},
 };
-use inference_core::{hf::GenerativeModel, models::qwen::Model as Qwen};
+use inference_core::{
+    hf::GenerativeModel,
+    modelpool::{StreamBackMessage, ModelPool},
+    models::qwen::Model as Qwen,
+};
 use sqlx::{PgPool, QueryBuilder};
 use tokio::sync::{Mutex, mpsc};
 use tokio_stream::{Stream, StreamExt, wrappers::ReceiverStream};
@@ -15,22 +19,23 @@ use tower_http::trace::{MakeSpan, TraceLayer};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
+// TODO: add a job that runs when new models are added to download
+
 pub struct ModelServer {
     pub registry: Mutex<Vec<ModelSpec>>,
-    pub model: Arc<std::sync::Mutex<Qwen>>, // TODO: replace this
+    pub model_pool: ModelPool,
     pg_pool: PgPool,
 }
 
 impl ModelServer {
     pub async fn new(pg_pool: PgPool) -> anyhow::Result<Self> {
-        info!("loading model...");
-        let qwen = Qwen::from_pretrained("Qwen/Qwen2-0.5B".into())
-            .map_err(|_| Status::internal("failed to load model"))?;
-        info!("model loaded!");
+        let model_pool = tokio::task::spawn_blocking(|| ModelPool::spawn(1).unwrap())
+            .await
+            .unwrap();
 
         Ok(ModelServer {
             pg_pool,
-            model: Arc::new(std::sync::Mutex::new(qwen)),
+            model_pool,
             registry: Mutex::new(vec![]),
         })
     }
@@ -124,12 +129,14 @@ impl Inferencer for ModelServer {
         let prompt = request.into_inner();
 
         let (tx, rx) = mpsc::channel(1024);
-        let adpt = ReceiverStream::new(rx).map(Ok);
+        let req = StreamBackMessage { prompt, sender: tx };
 
-        let mut model = Arc::clone(&self.model);
-        tokio::spawn(async move {
-            model.generate_stream(prompt, tx).await.unwrap();
-        });
+        // schedule infe rence job
+        self.model_pool.infer(req).unwrap();
+
+        // Result<u32, Status> is a constraint from tonic; we need to adapt the rx token stream
+        // into this expected format
+        let adpt = ReceiverStream::new(rx).map(Ok);
 
         Ok(Response::new(Box::pin(adpt)))
     }

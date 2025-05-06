@@ -28,6 +28,7 @@ tokio = { version = "1.42.1", features = ["rt-multi-thread", "macros", "sync"] }
 tokio-stream = "0.1.17"
 thiserror = "2.0.12"
 serde_json = "1.0.140"
+tracing = "0.1.41"
 
 # [profile.release]
 # opt-level = 3        # Or "3" for maximum speed
