@@ -29,9 +29,7 @@ pub struct ModelServer {
 
 impl ModelServer {
     pub async fn new(pg_pool: PgPool) -> anyhow::Result<Self> {
-        let model_pool = tokio::task::spawn_blocking(|| ModelPool::spawn(1).unwrap())
-            .await
-            .unwrap();
+        let model_pool = ModelPool::spawn(1).unwrap();
 
         Ok(ModelServer {
             pg_pool,
@@ -120,7 +118,7 @@ impl Inferencer for ModelServer {
 
     #[doc = " Server streaming response type for the GenerateStreaming method."]
     type GenerateStreamingStream =
-        Pin<Box<dyn Stream<Item = Result<u32, Status>> + Send + Sync + 'static>>;
+        Pin<Box<dyn Stream<Item = Result<String, Status>> + Send + Sync + 'static>>;
 
     async fn generate_streaming(
         &self,
@@ -129,10 +127,11 @@ impl Inferencer for ModelServer {
         let prompt = request.into_inner();
 
         let (tx, rx) = mpsc::channel(1024);
-        let req = StreamBackMessage { prompt, sender: tx };
+        let req = StreamBackMessage { prompt, sender: Some(tx) };
 
-        // schedule infe rence job
+        // schedule inference job
         self.model_pool.infer(req).unwrap();
+        // NOTE: tx.blocking_send will panic since inside async context !
 
         // Result<u32, Status> is a constraint from tonic; we need to adapt the rx token stream
         // into this expected format

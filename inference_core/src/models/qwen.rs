@@ -1,7 +1,7 @@
 use std::{panic, sync::{Arc, Mutex}};
 
 use super::download_weights;
-use crate::hf::{GenerativeModel, HfApiManager};
+use crate::{hf::{GenerativeModel, HfApiManager}, tokenizer::TokenOutputStream};
 use anyhow::{Error as E, Result};
 use async_trait::async_trait;
 use candle_core::{DType, Device, Tensor};
@@ -15,7 +15,7 @@ use tokenizers::Tokenizer;
 pub struct Model {
     pub device: Device,
     pub inner: qwen2::ModelForCausalLM,
-    pub tokenizer: Tokenizer,
+    pub tokenizer: TokenOutputStream,
     pub logits_processor: LogitsProcessor,
 }
 
@@ -40,7 +40,7 @@ impl Model {
         Ok(Self {
             device,
             inner: model,
-            tokenizer,
+            tokenizer: TokenOutputStream::new(tokenizer),
             logits_processor: LogitsProcessor::new(42, Some(0.8), None),
         })
     }
@@ -50,11 +50,10 @@ pub fn generate(
     model: &mut Model,
     prompt: String,
     max_new_tokens: usize,
-    tx: tokio::sync::mpsc::Sender<u32>,
+    tx: Option<tokio::sync::mpsc::Sender<String>>,
 ) -> Result<String> {
     let encoding = model.tokenizer.encode(prompt, true).map_err(E::msg)?;
     let mut tokens = encoding.get_ids().to_vec();
-    println!("{:?}", tokens);
 
     // eos tokens for qwen2
     let eos_token = match model
@@ -79,7 +78,6 @@ pub fn generate(
     let mut generated_tokens = 0;
 
     for index in 0..max_new_tokens {
-        println!("{index}");
         let context_size = if index > 0 { 1 } else { tokens.len() };
         let start_pos = tokens.len().saturating_sub(context_size);
         let ctxt = &tokens[start_pos..];
@@ -103,10 +101,15 @@ pub fn generate(
         tokens.push(next_token);
         generated_tokens += 1;
 
-        // apply callback
-        // if tx.send(next_token).await.is_err() {
-        //     panic!("failed to send token sync");
-        // };
+        // maybe stream back
+        if let Some(send_back) = tx.as_ref(){
+            if let Some(word) = model.tokenizer.next_token(next_token)?{
+                println!("{word}");
+                // if send_back.blocking_send(word).is_err() {
+                //     panic!("failed to send token sync");
+                // };
+            }
+        }
 
         if next_token == eos_token || next_token == eos_token2 {
             break;
@@ -115,21 +118,21 @@ pub fn generate(
     Ok("nate".into())
 }
 
-#[async_trait]
-impl GenerativeModel for Arc<Mutex<Model>> {
-    async fn generate_stream(
-        &mut self,
-        prompt: String,
-        tx: tokio::sync::mpsc::Sender<u32>,
-    ) -> Result<()> {
-        let model = Arc::clone(&self);
-
-        // CPU intensive task
-        tokio::task::spawn_blocking(move || {
-            let mut lock = model.lock().unwrap();
-            generate(&mut lock, prompt, 16, tx).unwrap();
-        })
-        .await;
-        Ok(())
-    }
-}
+// #[async_trait]
+// impl GenerativeModel for Arc<Mutex<Model>> {
+//     async fn generate_stream(
+//         &mut self,
+//         prompt: String,
+//         tx: tokio::sync::mpsc::Sender<String>,
+//     ) -> Result<()> {
+//         let model = Arc::clone(&self);
+//
+//         // CPU intensive task
+//         tokio::task::spawn_blocking(move || {
+//             let mut lock = model.lock().unwrap();
+//             generate(&mut lock, prompt, 32, tx).unwrap();
+//         })
+//         .await;
+//         Ok(())
+//     }
+// }

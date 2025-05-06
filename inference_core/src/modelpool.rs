@@ -1,5 +1,5 @@
 use futures::channel::oneshot;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use crate::errors::{Error, Result};
 use crate::models::qwen::{Model as Qwen, generate};
@@ -8,9 +8,10 @@ use std::{env, sync::Arc, thread::JoinHandle};
 
 const MODEL_WORKER_THREADS: usize = 1;
 
+// TODO: make Message enum for internal usage; streaming and blob
 pub struct StreamBackMessage {
     pub prompt: String,
-    pub sender: tokio::sync::mpsc::Sender<u32>, // stream tokens back
+    pub sender: Option<tokio::sync::mpsc::Sender<String>>,
 }
 
 #[derive(Debug)]
@@ -36,6 +37,8 @@ impl ModelPool {
         let (tx, rx) = crossbeam_channel::unbounded();
         let rx = Arc::new(rx);
 
+        info!(tokio_handle=?tokio::runtime::Handle::try_current());
+
         let mut workers = vec![];
 
         for _ in 0..num_replicas {
@@ -48,8 +51,15 @@ impl ModelPool {
                 info!("model loaded in thread: {:?}", thread::current().id());
 
                 loop {
-                    while let Ok(StreamBackMessage { prompt, sender }) = rx_worker.recv() {
-                        generate(&mut model, prompt, 32, sender);
+                    while let Ok(msg) = rx_worker.recv() {
+                        let StreamBackMessage {
+                            prompt,
+                            sender: maybe_sender,
+                        } = msg;
+
+                        if let Err(e) = generate(&mut model, prompt, 32, maybe_sender){
+                            error!(error=?e);
+                        }
                     }
                 }
             });

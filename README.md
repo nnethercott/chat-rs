@@ -59,10 +59,12 @@ conceptual:
 - [x] llvm linker
   - [x] read that article on minimizing build times
 - [ ] worker pool for models to serve requests (stateless with redis)
-- [ ] graceful shutdown
-- [ ] basic inference
-- [ ] streaming inference
+- [x] graceful shutdown
+- [x] basic inference
+- [x] streaming inference
 - [ ] update proto for text-only models
+- [ ] move model pool spawn outside of tokio context so we can blocking_send
+
 
 ## notes 
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another
