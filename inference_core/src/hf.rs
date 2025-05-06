@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use hf_hub::{
     Repo, RepoType,
-    api::tokio::{Api, ApiRepo},
+    api::sync::{Api, ApiRepo}
 };
 use std::ops::Deref;
 use tokio::sync::mpsc::Sender;

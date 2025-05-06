@@ -1,5 +1,5 @@
 use anyhow::Result;
-use hf_hub::api::tokio::ApiRepo;
+use hf_hub::api::sync::ApiRepo;
 use serde_json::Value;
 use std::{
     collections::HashSet,
@@ -9,8 +9,8 @@ use std::{
 // models
 pub mod qwen;
 
-pub(crate) async fn download_weights(repo: &ApiRepo) -> Result<Vec<PathBuf>> {
-    let weights: Vec<PathBuf> = match repo.get("model.safetensors.index.json").await {
+pub(crate) fn download_weights(repo: &ApiRepo) -> Result<Vec<PathBuf>> {
+    let weights: Vec<PathBuf> = match repo.get("model.safetensors.index.json"){
         Ok(pathbuf) => {
             let json: Value = serde_json::from_slice(&std::fs::read(&pathbuf)?)?;
 
@@ -24,7 +24,7 @@ pub(crate) async fn download_weights(repo: &ApiRepo) -> Result<Vec<PathBuf>> {
                 // download weights
                 let mut files = vec![];
                 for f in filenames {
-                    files.push(repo.get(&f).await?);
+                    files.push(repo.get(&f)?);
                 }
 
                 files
@@ -32,7 +32,7 @@ pub(crate) async fn download_weights(repo: &ApiRepo) -> Result<Vec<PathBuf>> {
                 anyhow::bail!("invalid model weight index");
             }
         }
-        _ => vec![repo.get("model.safetensors").await?],
+        _ => vec![repo.get("model.safetensors")?],
     };
 
     Ok(weights)

@@ -20,6 +20,7 @@ async-trait = "0.1.88"
 async-stream = "0.3.6"
 candle-core = "0.9.1"
 candle-transformers = { version = "0.9.1" }
+crossbeam-channel = "0.5.15"
 futures = "0.3.31"
 hf-hub = { version = "0.4.2", features = ["tokio"] }
 tokenizers = "0.21.1"

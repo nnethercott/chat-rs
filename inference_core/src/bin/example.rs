@@ -16,9 +16,7 @@ fn main() {
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     let mut model = rt.block_on(async {
-        let mut model = Model::from_pretrained("Qwen/Qwen2-0.5B".into())
-            .await
-            .unwrap();
+        let mut model = Model::from_pretrained("Qwen/Qwen2-0.5B".into()).unwrap();
         model
     });
 

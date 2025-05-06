@@ -20,21 +20,21 @@ pub struct Model {
 }
 
 impl Model {
-    pub async fn from_pretrained(model_id: String) -> Result<Self> {
+    pub fn from_pretrained(model_id: String) -> Result<Self> {
         let device = Device::Cpu;
         let api = HfApiManager::new(model_id)?;
 
         // config
-        let cfg_raw = api.get("config.json").await?;
+        let cfg_raw = api.get("config.json")?;
         let cfg: qwen2::Config = serde_json::from_slice(&std::fs::read(&cfg_raw)?)?;
 
         // model weights
-        let weights = download_weights(&api).await?;
+        let weights = download_weights(&api)?;
         let vb = unsafe { VarBuilder::from_mmaped_safetensors(&weights, DType::F32, &device)? };
         let model = qwen2::ModelForCausalLM::new(&cfg, vb)?;
 
         //tokenizer
-        let tokenizer_raw = api.get("tokenizer.json").await?;
+        let tokenizer_raw = api.get("tokenizer.json")?;
         let tokenizer = Tokenizer::from_file(&tokenizer_raw).map_err(E::msg)?;
 
         Ok(Self {

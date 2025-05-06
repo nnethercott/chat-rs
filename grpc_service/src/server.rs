@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 pub struct ModelServer {
     pub registry: Mutex<Vec<ModelSpec>>,
-    pub model: Arc<std::sync::Mutex<Qwen>>,
+    pub model: Arc<std::sync::Mutex<Qwen>>, // TODO: replace this
     pg_pool: PgPool,
 }
 
@@ -25,7 +25,6 @@ impl ModelServer {
     pub async fn new(pg_pool: PgPool) -> anyhow::Result<Self> {
         info!("loading model...");
         let qwen = Qwen::from_pretrained("Qwen/Qwen2-0.5B".into())
-            .await
             .map_err(|_| Status::internal("failed to load model"))?;
         info!("model loaded!");
 
