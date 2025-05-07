@@ -13,6 +13,6 @@ pub async fn list_models(State(state): State<AppState>) -> Result<Json<Vec<Model
 
             Ok(Json(models))
         }
-        None => todo!(),
+        None => Ok(Json(vec![])),
     }
 }

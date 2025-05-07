@@ -6,6 +6,8 @@ mod models;
 
 pub(crate) fn app_routes() -> Router<AppState> {
     let model_routes = Router::new().route("/list", get(list_models));
+    // models/{model_id}/chat (streaming)
+    // models/{model_id}/generate
 
     Router::new()
         .nest("/models", model_routes)

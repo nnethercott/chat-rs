@@ -7,4 +7,7 @@ pub enum Error {
 
     #[error("something went wrong in server init!\n{0}")]
     ServerSpawnError(#[from] Status),
+
+    #[error(transparent)]
+    HfError(#[from] anyhow::Error),
 }

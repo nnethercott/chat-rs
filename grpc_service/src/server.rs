@@ -1,27 +1,34 @@
+use std::pin::Pin;
+
 use crate::{
     Error, InferenceRequest, InferenceResponse, ModelSpec,
     config::Settings,
     inferencer_server::{Inferencer, InferencerServer},
 };
+use inference_core::modelpool::{ModelPool, SendBackMessage};
 use sqlx::{PgPool, QueryBuilder};
 use tokio::sync::{Mutex, mpsc};
-use tokio_stream::{StreamExt, wrappers::ReceiverStream};
+use tokio_stream::{Stream, StreamExt, wrappers::ReceiverStream};
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
+// TODO: add a job that runs when new models are added to download
+
 pub struct ModelServer {
     pub registry: Mutex<Vec<ModelSpec>>,
+    pub model_pool: ModelPool,
     pg_pool: PgPool,
 }
 
 impl ModelServer {
-    pub fn new(pg_pool: PgPool) -> Self {
-        ModelServer {
+    pub fn new(pg_pool: PgPool, model_pool: ModelPool) -> anyhow::Result<Self> {
+        Ok(ModelServer {
             pg_pool,
+            model_pool,
             registry: Mutex::new(vec![]),
-        }
+        })
     }
 
     async fn fetch_models(&self) -> sqlx::Result<()> {
@@ -101,6 +108,29 @@ impl Inferencer for ModelServer {
 
         Ok(Response::new(n_rows))
     }
+
+    #[doc = " Server streaming response type for the GenerateStreaming method."]
+    type GenerateStreamingStream =
+        Pin<Box<dyn Stream<Item = Result<String, Status>> + Send + Sync + 'static>>;
+
+    async fn generate_streaming(
+        &self,
+        request: Request<String>,
+    ) -> std::result::Result<Response<Self::GenerateStreamingStream>, Status> {
+        let prompt = request.into_inner();
+
+        let (tx, rx) = mpsc::channel(1024);
+        let req = SendBackMessage::Streaming { prompt, sender: tx };
+
+        // schedule inference job
+        self.model_pool.infer(req).unwrap();
+
+        // Result<u32, Status> is a constraint from tonic; we need to adapt the rx token stream
+        // into this expected format
+        let adpt = ReceiverStream::new(rx).map(Ok);
+
+        Ok(Response::new(Box::pin(adpt)))
+    }
 }
 
 #[derive(Clone)]
@@ -119,7 +149,7 @@ impl<T> MakeSpan<T> for ServerMakeSpan {
     }
 }
 
-pub async fn run_server(config: Settings) -> Result<(), Error> {
+pub async fn run_server(config: Settings, model_pool: ModelPool) -> Result<(), Error> {
     let socket_addr = config.server.addr().parse().unwrap();
 
     // health
@@ -135,7 +165,7 @@ pub async fn run_server(config: Settings) -> Result<(), Error> {
         .unwrap();
 
     // connect to db and refresh models
-    let model_server = ModelServer::new(config.db.create_pool());
+    let model_server = ModelServer::new(config.db.create_pool(), model_pool)?;
     model_server.fetch_models().await?;
 
     let server = Server::builder()
