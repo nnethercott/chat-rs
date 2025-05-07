@@ -1,5 +1,9 @@
 # tonic-model-serving
+Model serving from scratch in pure Rust. Made with tonic, axum, candle.rs, and ❤️
 
+Currently a work in progress ... 
+
+# Notes to self 
 ## flow 
 - local dev
   - sqlx to apply migrations to postgres image running in docker (so far a la zero2prod but its a nice pattern, sue me)
