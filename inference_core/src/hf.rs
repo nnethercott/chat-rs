@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use hf_hub::{
     Repo, RepoType,
-    api::sync::{Api, ApiRepo}
+    api::sync::{Api, ApiRepo},
 };
 use std::ops::Deref;
 use tokio::sync::mpsc::Sender;
@@ -37,9 +37,9 @@ pub struct TempModel;
 
 #[async_trait]
 impl GenerativeModel for TempModel {
-    async fn generate_stream(&mut self, prompt: String, tx: Sender<String>) ->anyhow::Result<()>{
-        for i in 0..10 {
-            tx.send("hello".into()).await.ok();
+    async fn generate_stream(&mut self, prompt: String, tx: Sender<String>) -> anyhow::Result<()> {
+        for _ in 0..10 {
+            tx.send(prompt.clone()).await.ok();
         }
         Ok(())
     }

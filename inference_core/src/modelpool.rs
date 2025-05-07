@@ -5,7 +5,7 @@ use crate::models::qwen::{Model as Qwen, generate};
 use std::thread;
 use std::{sync::Arc, thread::JoinHandle};
 
-const MODEL_WORKER_THREADS: usize = 1;
+// const MODEL_WORKER_THREADS: usize = 1;
 
 // TODO: make Message enum for internal usage; streaming and blob
 pub enum SendBackMessage {
@@ -29,11 +29,9 @@ impl ModelPool {
     pub fn infer(&self, request: SendBackMessage) -> Result<()> {
         match &self.tx {
             Some(t) => Ok(t.send(request)?),
-            None => {
-                Err(Error::Other {
-                    reason: "sender already dropped",
-                })
-            }
+            None => Err(Error::Other {
+                reason: "sender already dropped",
+            }),
         }
     }
 
@@ -92,7 +90,7 @@ impl Drop for ModelPool {
         if let Some(workers) = Arc::get_mut(&mut self.workers) {
             // kinda like into_iter
             for w in workers.drain(..) {
-                w.join();
+                let _ = w.join();
             }
         }
     }

@@ -58,12 +58,12 @@ conceptual:
 - [x] tracing and formatted logs
 - [x] llvm linker
   - [x] read that article on minimizing build times
-- [ ] worker pool for models to serve requests (stateless with redis)
+- [x] worker pool for models to serve requests (stateless with redis)
 - [x] graceful shutdown
 - [x] basic inference
 - [x] streaming inference
-- [ ] update proto for text-only models
-- [ ] move model pool spawn outside of tokio context so we can blocking_send
+- [ ] update proto; define interface for streaming/blocking requests
+- [x] move model pool spawn outside of tokio context so we can blocking_send
 
 
 ## notes 

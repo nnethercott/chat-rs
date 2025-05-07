@@ -77,7 +77,7 @@ impl Inferencer for MockGrpc {
 
     async fn generate_streaming(
         &self,
-        request: tonic::Request<String>,
+        _request: tonic::Request<String>,
     ) -> std::result::Result<Response<Self::GenerateStreamingStream>, Status> {
         todo!()
     }

@@ -14,13 +14,10 @@ fn main() {
     );
 
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let model = rt.block_on(async {
-        
-        Model::from_pretrained("Qwen/Qwen2-0.5B".into()).unwrap()
-    });
+    let model = rt.block_on(async { Model::from_pretrained("Qwen/Qwen2-0.5B".into()).unwrap() });
 
     // runs outside of tokios executor
-    run(model, "tell me a joke", 32);
+    run(model, "tell me a joke", 32).expect("works");
 }
 
 fn run(mut model: Model, prompt: &str, sample_len: usize) -> Result<()> {
@@ -31,7 +28,6 @@ fn run(mut model: Model, prompt: &str, sample_len: usize) -> Result<()> {
         .get_ids()
         .to_vec();
 
-    let mut generated_tokens = 0usize;
     let eos_token = match model
         .tokenizer
         .get_vocab(true)
@@ -43,7 +39,6 @@ fn run(mut model: Model, prompt: &str, sample_len: usize) -> Result<()> {
     };
     let eos_token2 = eos_token;
 
-    let start_gen = std::time::Instant::now();
     for index in 0..sample_len {
         println!("{index}");
         let context_size = if index > 0 { 1 } else { tokens.len() };
@@ -59,7 +54,6 @@ fn run(mut model: Model, prompt: &str, sample_len: usize) -> Result<()> {
 
         let next_token = model.logits_processor.sample(&logits)?;
         tokens.push(next_token);
-        generated_tokens += 1;
         if next_token == eos_token || next_token == eos_token2 {
             break;
         }

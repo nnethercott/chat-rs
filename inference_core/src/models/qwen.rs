@@ -8,7 +8,7 @@ use candle_transformers::{
     models::{mimi::candle_nn::VarBuilder, qwen2},
 };
 use tokenizers::Tokenizer;
-use tracing::{debug, info};
+use tracing::debug;
 
 pub struct Model {
     pub device: Device,
@@ -68,8 +68,6 @@ pub fn generate(
         None => anyhow::bail!("cannot find the <|im_end|> token"),
     };
 
-    let mut generated_tokens = 0;
-
     for index in 0..max_new_tokens {
         let context_size = if index > 0 { 1 } else { tokens.len() };
         let start_pos = tokens.len().saturating_sub(context_size);
@@ -92,7 +90,6 @@ pub fn generate(
 
         let next_token = model.logits_processor.sample(&logits)?;
         tokens.push(next_token);
-        generated_tokens += 1;
 
         // maybe stream back
         if let Some(send_back) = tx.as_ref() {
@@ -108,7 +105,7 @@ pub fn generate(
             break;
         }
     }
-    Ok(model.tokenizer.decode(&tokens, false).map_err(E::msg)?)
+    model.tokenizer.decode(&tokens, false).map_err(E::msg)
 }
 
 // #[async_trait]

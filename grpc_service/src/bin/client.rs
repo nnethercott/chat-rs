@@ -51,7 +51,7 @@ async fn main() {
 
         while let Some(Ok(word)) = rx.next().await {
             print!("{word}");
-            std::io::stdout().flush();
+            std::io::stdout().flush().unwrap();
         }
         println!("\n");
     });
