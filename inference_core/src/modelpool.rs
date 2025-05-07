@@ -1,31 +1,35 @@
-use futures::channel::oneshot;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 use crate::errors::{Error, Result};
 use crate::models::qwen::{Model as Qwen, generate};
 use std::thread;
-use std::{env, sync::Arc, thread::JoinHandle};
+use std::{sync::Arc, thread::JoinHandle};
 
 const MODEL_WORKER_THREADS: usize = 1;
 
 // TODO: make Message enum for internal usage; streaming and blob
-pub struct StreamBackMessage {
-    pub prompt: String,
-    pub sender: Option<tokio::sync::mpsc::Sender<String>>,
+pub enum SendBackMessage {
+    Streaming {
+        prompt: String,
+        sender: tokio::sync::mpsc::Sender<String>,
+    },
+    Blocking {
+        prompt: String,
+        sender: tokio::sync::oneshot::Sender<String>,
+    },
 }
 
 #[derive(Debug)]
 pub struct ModelPool {
     workers: Arc<Vec<JoinHandle<Result<()>>>>,
-    pub tx: Option<crossbeam_channel::Sender<StreamBackMessage>>,
+    pub tx: Option<crossbeam_channel::Sender<SendBackMessage>>,
 }
 
 impl ModelPool {
-    pub fn infer(&self, request: StreamBackMessage) -> Result<()> {
+    pub fn infer(&self, request: SendBackMessage) -> Result<()> {
         match &self.tx {
             Some(t) => Ok(t.send(request)?),
             None => {
-                error!("sender dropped");
                 Err(Error::Other {
                     reason: "sender already dropped",
                 })
@@ -45,21 +49,28 @@ impl ModelPool {
             let rx_worker = Arc::clone(&rx);
 
             let handle = std::thread::spawn(move || {
-                let mut model = Qwen::from_pretrained("Qwen/Qwen2-0.5B".into())
+                let mut model = Qwen::from_pretrained("Qwen/Qwen2.5-0.5B-Instruct".into())
                     .map_err(Error::ModelLoadError)?;
 
                 info!("model loaded in thread: {:?}", thread::current().id());
 
                 loop {
                     while let Ok(msg) = rx_worker.recv() {
-                        let StreamBackMessage {
-                            prompt,
-                            sender: maybe_sender,
-                        } = msg;
+                        match msg {
+                            SendBackMessage::Streaming { prompt, sender } => {
+                                if let Err(e) = generate(&mut model, prompt, 32, Some(sender)) {
+                                    error!(error=?e);
+                                }
+                            }
+                            SendBackMessage::Blocking { prompt, sender } => {
+                                match generate(&mut model, prompt, 32, None) {
+                                    Ok(resp) => sender.send(resp).expect("failed to send back"),
+                                    Err(e) => error!(error=?e),
+                                }
+                            }
+                        };
 
-                        if let Err(e) = generate(&mut model, prompt, 32, maybe_sender){
-                            error!(error=?e);
-                        }
+                        model.inner.clear_kv_cache();
                     }
                 }
             });

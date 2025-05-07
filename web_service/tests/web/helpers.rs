@@ -1,3 +1,6 @@
+use std::pin::Pin;
+
+use futures::Stream;
 use grpc_service::{
     InferenceRequest, InferenceResponse, ModelSpec,
     inferencer_client::InferencerClient,
@@ -66,6 +69,17 @@ impl Inferencer for MockGrpc {
             timestamp: 42,
         };
         Ok(Response::new(resp))
+    }
+
+    #[doc = " Server streaming response type for the GenerateStreaming method."]
+    type GenerateStreamingStream =
+        Pin<Box<dyn Stream<Item = Result<String, Status>> + Send + Sync + 'static>>;
+
+    async fn generate_streaming(
+        &self,
+        request: tonic::Request<String>,
+    ) -> std::result::Result<Response<Self::GenerateStreamingStream>, Status> {
+        todo!()
     }
 }
 

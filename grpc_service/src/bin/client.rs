@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use grpc_service::{ModelSpec, ModelType, inferencer_client::InferencerClient};
 use tokio_stream::StreamExt;
 use tonic::Request;
@@ -39,6 +41,19 @@ async fn main() {
         while let Some(Ok(model)) = rx.next().await {
             println!("{:?}", model);
         }
+
+        // run an inference
+        let mut rx = client
+            .generate_streaming(Request::new("tell me a funny joke.".into()))
+            .await
+            .unwrap()
+            .into_inner();
+
+        while let Some(Ok(word)) = rx.next().await {
+            print!("{word}");
+            std::io::stdout().flush();
+        }
+        println!("\n");
     });
 
     tokio::select! {

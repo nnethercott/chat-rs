@@ -2,7 +2,6 @@ use anyhow::Error as E;
 use anyhow::Result;
 use candle_core::DType;
 use candle_core::Tensor;
-use candle_transformers::utils;
 use inference_core::models::qwen::Model;
 
 fn main() {
@@ -15,13 +14,13 @@ fn main() {
     );
 
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let mut model = rt.block_on(async {
-        let mut model = Model::from_pretrained("Qwen/Qwen2-0.5B".into()).unwrap();
-        model
+    let model = rt.block_on(async {
+        
+        Model::from_pretrained("Qwen/Qwen2-0.5B".into()).unwrap()
     });
 
     // runs outside of tokios executor
-    run(model, "tell me a joke".into(), 32);
+    run(model, "tell me a joke", 32);
 }
 
 fn run(mut model: Model, prompt: &str, sample_len: usize) -> Result<()> {

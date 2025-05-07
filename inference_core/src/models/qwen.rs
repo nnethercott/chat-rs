@@ -1,9 +1,6 @@
-use std::{panic, sync::{Arc, Mutex}};
-
 use super::download_weights;
-use crate::{hf::{GenerativeModel, HfApiManager}, tokenizer::TokenOutputStream};
+use crate::{hf::HfApiManager, tokenizer::TokenOutputStream};
 use anyhow::{Error as E, Result};
-use async_trait::async_trait;
 use candle_core::{DType, Device, Tensor};
 use candle_transformers::{
     self,
@@ -11,6 +8,7 @@ use candle_transformers::{
     models::{mimi::candle_nn::VarBuilder, qwen2},
 };
 use tokenizers::Tokenizer;
+use tracing::{debug, info};
 
 pub struct Model {
     pub device: Device,
@@ -41,7 +39,7 @@ impl Model {
             device,
             inner: model,
             tokenizer: TokenOutputStream::new(tokenizer),
-            logits_processor: LogitsProcessor::new(42, Some(0.8), None),
+            logits_processor: LogitsProcessor::new(42, Some(0.4), None),
         })
     }
 }
@@ -65,12 +63,7 @@ pub fn generate(
         Some(token) => token,
         None => anyhow::bail!("cannot find the <|endoftext|> token"),
     };
-    let eos_token2 = match model
-        .tokenizer
-        .get_vocab(true)
-        .get("<|im_end|>")
-        .copied()
-    {
+    let eos_token2 = match model.tokenizer.get_vocab(true).get("<|im_end|>").copied() {
         Some(token) => token,
         None => anyhow::bail!("cannot find the <|im_end|> token"),
     };
@@ -92,7 +85,7 @@ pub fn generate(
             let start_at = tokens.len().saturating_sub(64);
             candle_transformers::utils::apply_repeat_penalty(
                 &logits,
-                1.5, // https://huggingface.co/Qwen/Qwen3-4B `presence_penalty`
+                1.0, // https://huggingface.co/Qwen/Qwen3-4B `presence_penalty`
                 &tokens[start_at..],
             )?
         };
@@ -102,12 +95,12 @@ pub fn generate(
         generated_tokens += 1;
 
         // maybe stream back
-        if let Some(send_back) = tx.as_ref(){
-            if let Some(word) = model.tokenizer.next_token(next_token)?{
-                println!("{word}");
-                // if send_back.blocking_send(word).is_err() {
-                //     panic!("failed to send token sync");
-                // };
+        if let Some(send_back) = tx.as_ref() {
+            if let Some(word) = model.tokenizer.next_token(next_token)? {
+                if let Err(e) = send_back.try_send(word) {
+                    debug!(tokio_handle=?tokio::runtime::Handle::try_current());
+                    panic!("failed to send token sync\n{:?}", e);
+                };
             }
         }
 
@@ -115,7 +108,7 @@ pub fn generate(
             break;
         }
     }
-    Ok("nate".into())
+    Ok(model.tokenizer.decode(&tokens, false).map_err(E::msg)?)
 }
 
 // #[async_trait]

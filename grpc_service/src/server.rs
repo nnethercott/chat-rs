@@ -1,16 +1,11 @@
-use std::{pin::Pin, sync::Arc};
+use std::pin::Pin;
 
 use crate::{
     Error, InferenceRequest, InferenceResponse, ModelSpec,
     config::Settings,
-    inference_request::Data,
     inferencer_server::{Inferencer, InferencerServer},
 };
-use inference_core::{
-    hf::GenerativeModel,
-    modelpool::{StreamBackMessage, ModelPool},
-    models::qwen::Model as Qwen,
-};
+use inference_core::modelpool::{ModelPool, SendBackMessage};
 use sqlx::{PgPool, QueryBuilder};
 use tokio::sync::{Mutex, mpsc};
 use tokio_stream::{Stream, StreamExt, wrappers::ReceiverStream};
@@ -28,9 +23,7 @@ pub struct ModelServer {
 }
 
 impl ModelServer {
-    pub async fn new(pg_pool: PgPool) -> anyhow::Result<Self> {
-        let model_pool = ModelPool::spawn(1).unwrap();
-
+    pub fn new(pg_pool: PgPool, model_pool: ModelPool) -> anyhow::Result<Self> {
         Ok(ModelServer {
             pg_pool,
             model_pool,
@@ -127,11 +120,10 @@ impl Inferencer for ModelServer {
         let prompt = request.into_inner();
 
         let (tx, rx) = mpsc::channel(1024);
-        let req = StreamBackMessage { prompt, sender: Some(tx) };
+        let req = SendBackMessage::Streaming { prompt, sender: tx };
 
         // schedule inference job
         self.model_pool.infer(req).unwrap();
-        // NOTE: tx.blocking_send will panic since inside async context !
 
         // Result<u32, Status> is a constraint from tonic; we need to adapt the rx token stream
         // into this expected format
@@ -157,7 +149,7 @@ impl<T> MakeSpan<T> for ServerMakeSpan {
     }
 }
 
-pub async fn run_server(config: Settings) -> Result<(), Error> {
+pub async fn run_server(config: Settings, model_pool: ModelPool) -> Result<(), Error> {
     let socket_addr = config.server.addr().parse().unwrap();
 
     // health
@@ -173,7 +165,7 @@ pub async fn run_server(config: Settings) -> Result<(), Error> {
         .unwrap();
 
     // connect to db and refresh models
-    let model_server = ModelServer::new(config.db.create_pool()).await?;
+    let model_server = ModelServer::new(config.db.create_pool(), model_pool)?;
     model_server.fetch_models().await?;
 
     let server = Server::builder()

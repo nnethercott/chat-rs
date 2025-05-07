@@ -1,4 +1,4 @@
-use crate::modelpool::StreamBackMessage;
+use crate::modelpool::SendBackMessage;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -11,7 +11,7 @@ pub enum Error {
     ModelLoadError(#[source] anyhow::Error),
 
     #[error(transparent)]
-    TaskScheduleError(#[from] crossbeam_channel::SendError<StreamBackMessage>),
+    TaskScheduleError(#[from] crossbeam_channel::SendError<SendBackMessage>),
 
     #[error("failed with reason: {reason}")]
     Other { reason: &'static str },

@@ -5,6 +5,7 @@ use grpc_service::{
     inferencer_server::InferencerServer,
     server::ModelServer,
 };
+use inference_core::modelpool::ModelPool;
 use sqlx::{Connection, Executor, PgConnection, PgPool, postgres::PgConnectOptions};
 use std::{env, sync::LazyLock, time::Duration};
 use tokio::{net::TcpListener, sync::oneshot, time};
@@ -133,7 +134,8 @@ pub async fn spawn_server() -> TestServer {
 
     // lazy connect so hopefull we can change db_name here
     let pgpool = create_test_db(&mut config.db).await.unwrap();
-    let model_server = ModelServer::new(pgpool);
+    let model_pool = ModelPool::spawn(0).unwrap();
+    let model_server = ModelServer::new(pgpool, model_pool).unwrap();
 
     // set listener on random free port
     let listener = TcpListener::bind("[::1]:0").await.unwrap();
