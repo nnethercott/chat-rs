@@ -4271,6 +4271,7 @@ dependencies = [
  "anyhow",
  "axum",
  "bytes",
+ "clap",
  "config",
  "futures",
  "grpc_service",

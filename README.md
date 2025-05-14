@@ -70,6 +70,8 @@ conceptual:
 - [ ] update proto; define interface for streaming/blocking requests
 - [x] move model pool spawn outside of tokio context so we can blocking_send
 - [ ] add clap to all the configs
+  - [ ] serde + serde_yaml for deserializing from a local file ?
+  - [ ] register relevant environment variables for ports and stuff
 
 
 ## notes 

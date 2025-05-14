@@ -26,7 +26,12 @@ pub struct Settings {
         default = "default_log_level",
         deserialize_with = "try_deserialize_log_level"
     )]
-    #[clap(long, short='v', default_value_t = default_log_level(), value_parser=clap::value_parser!(tracing::Level))]
+    #[clap(
+        long,
+        short='v',
+        default_value_t = default_log_level(),
+        value_parser=clap::value_parser!(tracing::Level)
+    )]
     pub log_level: tracing::Level,
 }
 

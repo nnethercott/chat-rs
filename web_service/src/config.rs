@@ -1,5 +1,5 @@
 #![allow(clippy::to_string_trait_impl)]
-
+use clap::Parser;
 use std::{
     env::{self},
     path::Path,
@@ -11,18 +11,30 @@ use serde::Deserialize;
 type RedisConfig = ServerConfig;
 type GRPCConfig = ServerConfig;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Parser, Debug, Deserialize, Default)]
 pub struct Settings {
-    #[serde(alias = "web")]
+    #[serde(alias = "web", flatten)]
+    #[clap(alias = "web", flatten)]
     pub server: ServerConfig,
+
+    #[serde(flatten)]
+    #[clap(flatten)]
     pub redis: RedisConfig,
+
+    #[serde(flatten)]
+    #[clap(flatten)]
     pub grpc: GRPCConfig,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Parser, Debug, Deserialize, Default)]
 pub struct ServerConfig {
+    /// host for axum server
+    #[clap(long, default_value = "127.0.0.1", id = "web.host")]
     pub host: String,
-    pub port: String,
+
+    /// port for axum server
+    #[clap(long, default_value_t = 3000, id = "web.port")]
+    pub port: u16,
 }
 
 impl ServerConfig {
@@ -31,51 +43,4 @@ impl ServerConfig {
     }
 }
 
-pub enum Env {
-    Local,
-    Production,
-}
-
-impl ToString for Env {
-    fn to_string(&self) -> String {
-        match self {
-            Env::Local => "local".into(),
-            Env::Production => "production".into(),
-        }
-    }
-}
-
-impl TryFrom<String> for Env {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match &value[..] {
-            "local" => Ok(Env::Local),
-            "production" => Ok(Env::Production),
-            _ => Err("value must be 'local' or 'production'".to_string()),
-        }
-    }
-}
-
-pub fn get_config() -> Result<Settings, config::ConfigError> {
-    let environ: Env = env::var("AXUM_SERVER_APP_ENV")
-        .unwrap_or("local".into())
-        .try_into()
-        .expect("failed TryInto<Env>");
-
-    let config_file = match env::var("CONFIG_FILE") {
-        Ok(f) => Path::new(&f).to_path_buf(),
-        Err(_) => env::current_dir().unwrap().join(format!(
-            "{}/config/{}.yaml",
-            env!("CARGO_CRATE_NAME"),
-            environ.to_string()
-        )),
-    };
-
-    let c = Config::builder()
-        .add_source(config::File::from(config_file))
-        .add_source(config::Environment::default().separator("__"))
-        .build()?;
-
-    c.try_deserialize()
-}
+// TODO: write macro for server_config
