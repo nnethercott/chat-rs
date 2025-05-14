@@ -21,7 +21,7 @@ tangible:
   - another health endpoint would be the axum server itself
 - pipe/sync logs to an elasticsearch instance ?
 - [rust-cache](https://github.com/Swatinem/rust-cache) for reducing gh action times ✅
-- *graceful shutdown* for grpc and web services
+- *graceful shutdown* for grpc and web services ✅
 - project pivot idea: use the service as an embeddings type generation thing like meilisearch and implement a database
   - could try to do an from-scratch implementation of ann
   - **or** take inspo and use thread/process pool on worker machine to handle incoming inference requests
@@ -63,11 +63,13 @@ conceptual:
 - [x] llvm linker
   - [x] read that article on minimizing build times
 - [x] worker pool for models to serve requests (stateless with redis)
+  - [ ] redis middleware not yet done
 - [x] graceful shutdown
 - [x] basic inference
 - [x] streaming inference
 - [ ] update proto; define interface for streaming/blocking requests
 - [x] move model pool spawn outside of tokio context so we can blocking_send
+- [ ] add clap to all the configs
 
 
 ## notes 

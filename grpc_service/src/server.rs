@@ -11,7 +11,7 @@ use tokio::sync::{Mutex, mpsc};
 use tokio_stream::{Stream, StreamExt, wrappers::ReceiverStream};
 use tonic::{Request, Response, Status, transport::Server};
 use tower_http::trace::{MakeSpan, TraceLayer};
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 // TODO: add a job that runs when new models are added to download
@@ -166,7 +166,9 @@ pub async fn run_server(config: Settings, model_pool: ModelPool) -> Result<(), E
 
     // connect to db and refresh models
     let model_server = ModelServer::new(config.db.create_pool(), model_pool)?;
-    model_server.fetch_models().await?;
+    if let Err(e) = model_server.fetch_models().await {
+        error!(error=%e);
+    }
 
     let server = Server::builder()
         // add tower tracing layer for requests
@@ -177,7 +179,7 @@ pub async fn run_server(config: Settings, model_pool: ModelPool) -> Result<(), E
         .add_service(health_service);
 
     info!("starting server...");
-    debug!(config=?config);
+    // info!(config=?config);
 
     server
         .serve(socket_addr)
