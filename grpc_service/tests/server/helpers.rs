@@ -1,9 +1,5 @@
 use grpc_service::{
-    ModelSpec,
-    config::{DatabaseConfig, get_config},
-    inferencer_client::InferencerClient,
-    inferencer_server::InferencerServer,
-    server::ModelServer,
+    config::{DatabaseConfig, Settings}, inferencer_client::InferencerClient, inferencer_server::InferencerServer, server::ModelServer, ModelSpec
 };
 use inference_core::modelpool::ModelPool;
 use sqlx::{Connection, Executor, PgConnection, PgPool, postgres::PgConnectOptions};
@@ -16,6 +12,7 @@ use tonic::{
 };
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
+use clap::Parser;
 
 // tracing
 static TRACING: LazyLock<()> = LazyLock::new(|| {
@@ -112,14 +109,6 @@ pub async fn delete_test_db(config: &DatabaseConfig) -> sqlx::Result<()> {
     Ok(())
 }
 
-fn set_env_vars() {
-    // wokrdir in tests different than main crate
-    let dir = env::current_dir().unwrap();
-
-    unsafe {
-        env::set_var("CONFIG_FILE", dir.join("config/local.yaml"));
-    }
-}
 
 pub async fn spawn_server() -> TestServer {
     // set this once
@@ -127,9 +116,7 @@ pub async fn spawn_server() -> TestServer {
         LazyLock::force(&TRACING);
     }
 
-    set_env_vars();
-
-    let mut config = get_config().unwrap();
+    let mut config: Settings = Settings::parse();
     config.db.db_name = Uuid::new_v4().to_string();
 
     // lazy connect so hopefull we can change db_name here

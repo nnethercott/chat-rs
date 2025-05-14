@@ -1,23 +1,55 @@
 #![allow(clippy::to_string_trait_impl)]
 
-use std::{
-    env::{self},
-    path::Path,
-    str::FromStr,
-};
+const DB_HOST: &str = "APP__DB_HOST";
+const DB_PORT: &str = "APP__DB_PORT";
+const DB_NAME: &str = "APP__DB_NAME";
+const DB_USERNAME: &str = "APP__DB_USERNAME";
+const DB_PASSWORD: &str = "APP__DB_PASSWORD";
 
-use config::Config;
+use clap::Parser;
 use serde::{Deserialize, Deserializer};
 use sqlx::{PgPool, postgres::PgConnectOptions};
+use std::str::FromStr;
 use tracing::Level;
 
-// implements deserialize already
-#[derive(Deserialize, Debug)]
+#[derive(Parser, Debug, Deserialize)]
+pub struct Settings {
+    #[serde(flatten)]
+    #[clap(flatten)]
+    pub server: ServerConfig,
+
+    #[serde(flatten)]
+    #[clap(flatten)]
+    pub db: DatabaseConfig,
+
+    #[serde(
+        default = "default_log_level",
+        deserialize_with = "try_deserialize_log_level"
+    )]
+    #[clap(long, short='v', default_value_t = default_log_level(), value_parser=clap::value_parser!(tracing::Level))]
+    pub log_level: tracing::Level,
+}
+
+#[derive(Parser, Debug, Deserialize)]
 pub struct DatabaseConfig {
+    /// db name
+    #[clap(long, env = DB_NAME, default_value = "models")]
     pub db_name: String,
+
+    /// db username
+    #[clap(long, env = DB_USERNAME, default_value = "postgres")]
     pub user_name: String,
+
+    /// db username
+    #[clap(long, env = DB_PASSWORD, default_value = "password")]
     pub password: String,
+
+    // db host
+    #[clap(long = "db-host", env = DB_HOST, default_value = "127.0.0.1", id="db.host")]
     pub host: String,
+
+    // db port
+    #[clap(long = "db-port", env = DB_PORT, default_value_t = 5432, id="db.port")]
     pub port: u16,
 }
 
@@ -34,28 +66,22 @@ impl DatabaseConfig {
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct Settings {
-    pub server: ServerConfig,
-    pub db: DatabaseConfig,
-    #[serde(
-        default = "default_log_level",
-        deserialize_with = "try_deserialize_loglevel"
-    )]
-    pub log_level: tracing::Level,
-}
-
-#[derive(Deserialize, Debug)]
+#[derive(Parser, Deserialize, Debug)]
 pub struct ServerConfig {
+    // host of the grprc server
+    #[clap(long = "grpc-host", default_value = "[::1]", id = "server.host")]
     pub host: String,
-    pub port: String,
+
+    // grpc port
+    #[clap(long = "grpc-port", default_value = "50051", id = "server.port")]
+    pub port: u16,
 }
 
-fn default_log_level() -> Level {
+fn default_log_level() -> tracing::Level {
     Level::INFO
 }
 
-fn try_deserialize_loglevel<'de, D>(d: D) -> Result<tracing::Level, D::Error>
+fn try_deserialize_log_level<'de, D>(d: D) -> Result<tracing::Level, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -67,58 +93,4 @@ impl ServerConfig {
     pub fn addr(&self) -> String {
         format!("{}:{}", self.host, self.port)
     }
-}
-
-pub enum Env {
-    Local,
-    Production,
-}
-
-impl ToString for Env {
-    fn to_string(&self) -> String {
-        match self {
-            Env::Local => "local".into(),
-            Env::Production => "production".into(),
-        }
-    }
-}
-
-impl TryFrom<String> for Env {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match &value[..] {
-            "local" => Ok(Env::Local),
-            "production" => Ok(Env::Production),
-            _ => Err("value must be 'local' or 'production'".to_string()),
-        }
-    }
-}
-
-pub fn get_config() -> Result<Settings, config::ConfigError> {
-    let environ: Env = env::var("GRPC_SERVER_APP_ENV")
-        .unwrap_or("local".into())
-        .try_into()
-        .expect("failed TryInto<Env>");
-
-    let config_file = match env::var("CONFIG_FILE") {
-        Ok(f) => Path::new(&f).to_path_buf(),
-        Err(_) => env::current_dir().unwrap().join(format!(
-            "{}/config/{}.yaml",
-            env!("CARGO_CRATE_NAME"),
-            environ.to_string()
-        )),
-    };
-
-    let c = Config::builder()
-        .add_source(config::File::from(config_file))
-        .add_source(
-            config::Environment::default()
-                .prefix("APP")
-                .prefix_separator("_")
-                .separator("__"),
-        )
-        .build()?;
-
-    c.try_deserialize()
 }

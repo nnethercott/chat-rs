@@ -1,11 +1,12 @@
-use grpc_service::{Error, config::get_config, server::run_server};
+use grpc_service::{config::Settings, server::run_server, Error};
 use inference_core::modelpool::ModelPool;
-use tracing::error;
+use tracing::{error, info};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
+use clap::Parser;
 
 fn main() -> Result<(), Error> {
-    let config = get_config().expect("failed to build config");
+    let config = Settings::parse();
     let log_level = config.log_level.clone().as_str();
 
     tracing_subscriber::registry()
@@ -18,6 +19,7 @@ fn main() -> Result<(), Error> {
         .with(EnvFilter::try_from_default_env().unwrap_or(log_level.into()))
         .init();
 
+    info!(config=?config);
     let model_pool = ModelPool::spawn(1).unwrap();
 
     let rt = tokio::runtime::Runtime::new().unwrap();
