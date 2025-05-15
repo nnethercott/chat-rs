@@ -6,18 +6,10 @@ macro_rules! server_config {
     ($name:ident, $alias:literal, $host:literal, $port:literal) => {
         #[derive(Parser, Debug, Deserialize, Default)]
         pub struct $name {
-            #[clap(
-                        long = stringify!($alias-host),
-                        default_value = $host,
-                        id = stringify!($alias.host)
-                    )]
+            #[clap(long = stringify!($alias-host), default_value = $host, id = stringify!($alias.host))]
             pub host: String,
 
-            #[clap(
-                        long = stringify!($alias-port),
-                        default_value_t = $port,
-                        id = stringify!($alias.port)
-                    )]
+            #[clap(long = stringify!($alias-port), default_value_t = $port, id = stringify!($alias.port))]
             pub port: u16,
         }
 
