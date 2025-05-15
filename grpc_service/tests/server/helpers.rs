@@ -1,5 +1,10 @@
+use clap::Parser;
 use grpc_service::{
-    config::{DatabaseConfig, Settings}, inferencer_client::InferencerClient, inferencer_server::InferencerServer, server::ModelServer, ModelSpec
+    ModelSpec,
+    config::{DatabaseConfig, Settings},
+    inferencer_client::InferencerClient,
+    inferencer_server::InferencerServer,
+    server::ModelServer,
 };
 use inference_core::modelpool::ModelPool;
 use sqlx::{Connection, Executor, PgConnection, PgPool, postgres::PgConnectOptions};
@@ -12,7 +17,6 @@ use tonic::{
 };
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
-use clap::Parser;
 
 // tracing
 static TRACING: LazyLock<()> = LazyLock::new(|| {
@@ -108,7 +112,6 @@ pub async fn delete_test_db(config: &DatabaseConfig) -> sqlx::Result<()> {
         .await?;
     Ok(())
 }
-
 
 pub async fn spawn_server() -> TestServer {
     // set this once

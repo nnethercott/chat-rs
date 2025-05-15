@@ -11,5 +11,5 @@ pub(crate) fn app_routes() -> Router<AppState> {
 
     Router::new()
         .nest("/models", model_routes)
-        .route("/health", get(async || {})) // `IntoRespone` impl for ()
+        .route("/healthz", get(async || {})) // `IntoRespone` impl for ()
 }

@@ -1,21 +1,44 @@
 #![allow(clippy::to_string_trait_impl)]
 use clap::Parser;
-use std::{
-    env::{self},
-    path::Path,
-};
-
-use config::Config;
 use serde::Deserialize;
 
-type RedisConfig = ServerConfig;
-type GRPCConfig = ServerConfig;
+macro_rules! server_config {
+    ($name:ident, $alias:literal, $host:literal, $port:literal) => {
+        #[derive(Parser, Debug, Deserialize, Default)]
+        pub struct $name {
+            #[clap(
+                        long = stringify!($alias-host),
+                        default_value = $host,
+                        id = stringify!($alias.host)
+                    )]
+            pub host: String,
+
+            #[clap(
+                        long = stringify!($alias-port),
+                        default_value_t = $port,
+                        id = stringify!($alias.port)
+                    )]
+            pub port: u16,
+        }
+
+        impl $name {
+            pub fn addr(&self) -> String {
+                format!("{}:{}", self.host, self.port)
+            }
+        }
+    };
+}
+
+// codegen server configs
+server_config!(WebConfig, "web", "127.0.0.1", 3000);
+server_config!(RedisConfig, "redis", "127.0.0.1", 6379);
+server_config!(GRPCConfig, "grpc", "[::1]", 50051);
 
 #[derive(Parser, Debug, Deserialize, Default)]
 pub struct Settings {
-    #[serde(alias = "web", flatten)]
-    #[clap(alias = "web", flatten)]
-    pub server: ServerConfig,
+    #[serde(flatten)]
+    #[clap(flatten)]
+    pub server: WebConfig,
 
     #[serde(flatten)]
     #[clap(flatten)]
@@ -25,22 +48,3 @@ pub struct Settings {
     #[clap(flatten)]
     pub grpc: GRPCConfig,
 }
-
-#[derive(Parser, Debug, Deserialize, Default)]
-pub struct ServerConfig {
-    /// host for axum server
-    #[clap(long, default_value = "127.0.0.1", id = "web.host")]
-    pub host: String,
-
-    /// port for axum server
-    #[clap(long, default_value_t = 3000, id = "web.port")]
-    pub port: u16,
-}
-
-impl ServerConfig {
-    pub fn addr(&self) -> String {
-        format!("{}:{}", self.host, self.port)
-    }
-}
-
-// TODO: write macro for server_config

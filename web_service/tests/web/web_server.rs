@@ -23,7 +23,7 @@ async fn test_health() {
         .oneshot(
             Request::builder()
                 .method(http::Method::GET)
-                .uri("/health")
+                .uri("/healthz")
                 .body(Body::empty())
                 .unwrap(),
         )

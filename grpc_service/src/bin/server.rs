@@ -1,9 +1,9 @@
-use grpc_service::{config::Settings, server::run_server, Error};
+use clap::Parser;
+use grpc_service::{Error, config::Settings, server::run_server};
 use inference_core::modelpool::ModelPool;
 use tracing::{error, info};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
-use clap::Parser;
 
 fn main() -> Result<(), Error> {
     let config = Settings::parse();
