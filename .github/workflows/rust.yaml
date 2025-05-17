@@ -1,0 +1,67 @@
+name: Rust CI
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-D warnings"
+  RUST_BACKTRACE: full
+
+jobs:
+  test:
+    name: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        rust:
+          - stable
+          - beta
+    env:
+      APP_DB__PASSWORD: postgres
+    services:
+      test-db:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup test with Rust stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2.7.8
+      - uses: arduino/setup-protoc@v3
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --locked -- --nocapture
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85
+      - uses: arduino/setup-protoc@v3
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --locked -- --nocapture
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-features

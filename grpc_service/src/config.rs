@@ -1,10 +1,10 @@
 #![allow(clippy::to_string_trait_impl)]
 
-const DB_HOST: &str = "APP__DB_HOST";
-const DB_PORT: &str = "APP__DB_PORT";
-const DB_NAME: &str = "APP__DB_NAME";
-const DB_USERNAME: &str = "APP__DB_USERNAME";
-const DB_PASSWORD: &str = "APP__DB_PASSWORD";
+const DB_HOST: &str = "APP_DB__HOST";
+const DB_PORT: &str = "APP_DB__PORT";
+const DB_NAME: &str = "APP_DB__NAME";
+const DB_USERNAME: &str = "APP_DB__USERNAME";
+const DB_PASSWORD: &str = "APP_DB__PASSWORD";
 
 use clap::Parser;
 use serde::{Deserialize, Deserializer};
