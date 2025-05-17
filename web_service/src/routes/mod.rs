@@ -1,12 +1,17 @@
 use crate::server::AppState;
 use axum::{Router, routing::get};
-use models::list_models;
 
+mod chat;
 mod models;
 
+use chat::chat;
+use models::list_models;
+
 pub(crate) fn app_routes() -> Router<AppState> {
-    let model_routes = Router::new().route("/list", get(list_models));
-    // models/{model_id}/chat (streaming)
+    let model_routes = Router::new()
+        .route("/list", get(list_models))
+        .route("/{id}/chat", get(chat));
+
     // models/{model_id}/generate
 
     Router::new()

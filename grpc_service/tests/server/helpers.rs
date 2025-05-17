@@ -29,18 +29,20 @@ static TRACING: LazyLock<()> = LazyLock::new(|| {
 pub struct TestServer {
     client: InferencerClient<Channel>,
     tx: Option<oneshot::Sender<()>>,
+    pub addr: String,
 }
 
 impl TestServer {
     pub async fn new(addr: String, tx: oneshot::Sender<()>) -> Self {
         // BAD ? sleep to allow server spawn (could loop)
         time::sleep(Duration::from_millis(10)).await;
-        let client = InferencerClient::connect(format!("http://{}", addr))
+        let client = InferencerClient::connect(format!("http://{}", &addr))
             .await
             .unwrap();
         Self {
             client,
             tx: Some(tx),
+            addr,
         }
     }
 

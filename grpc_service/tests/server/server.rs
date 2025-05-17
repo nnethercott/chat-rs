@@ -1,5 +1,5 @@
 use crate::helpers::spawn_server;
-use grpc_service::{ModelSpec, ModelType};
+use grpc_service::{ModelSpec, ModelType, inferencer_client::InferencerClient};
 use uuid::Uuid;
 
 // TODO: init tracing in tests!
@@ -22,4 +22,26 @@ async fn test_add_and_list_models_works() {
 
     assert_eq!(m as usize, 1);
     assert_eq!(models.len() as usize, 1);
+}
+
+#[tokio::test]
+async fn multiple_clients_single_server() {
+    let ts = spawn_server().await;
+
+    let a1 = ts.addr.clone();
+    let a2 = ts.addr.clone();
+
+    // manually connect with two clients
+    let h1 = tokio::spawn(async move {
+        let client = InferencerClient::connect(format!("http://{}", &a1))
+            .await
+            .unwrap();
+    });
+    let h2 = tokio::spawn(async move {
+        let client = InferencerClient::connect(format!("http://{}", &a2))
+            .await
+            .unwrap();
+    });
+
+    tokio::join!(h1, h2);
 }
