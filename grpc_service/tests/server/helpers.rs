@@ -119,7 +119,7 @@ pub async fn spawn_server() -> TestServer {
         LazyLock::force(&TRACING);
     }
 
-    let mut config: Settings = Settings::parse();
+    let mut config: Settings = Parser::parse_from(None as Option<&str>);
     config.db.db_name = Uuid::new_v4().to_string();
 
     // lazy connect so hopefull we can change db_name here
