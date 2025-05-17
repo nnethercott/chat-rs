@@ -29,7 +29,7 @@
 
             websocket.onmessage = function(e) {
                 console.log("agent: "+e.data);
-                textarea.value += e.data+"\r\n";
+                textarea.value += e.data;
             }
 
             input.onkeydown = function(e) {
