@@ -1,9 +1,10 @@
+use clap::Parser;
 use tracing_subscriber::{self, EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
-use web_service::{config::get_config, server::App};
+use web_service::{config::Settings, server::App};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let config = get_config().expect("failed to build config");
+    let config = Settings::parse();
     // let log_level = config.log_level.clone().as_str();
 
     // more options from docs  where `with_span_list` indicated

@@ -1,81 +1,42 @@
 #![allow(clippy::to_string_trait_impl)]
-
-use std::{
-    env::{self},
-    path::Path,
-};
-
-use config::Config;
+use clap::Parser;
 use serde::Deserialize;
 
-type RedisConfig = ServerConfig;
-type GRPCConfig = ServerConfig;
+macro_rules! server_config {
+    ($name:ident, $alias:literal, $host:literal, $port:literal) => {
+        #[derive(Parser, Debug, Deserialize, Default)]
+        pub struct $name {
+            #[clap(long = stringify!($alias-host), default_value = $host, id = stringify!($alias.host))]
+            pub host: String,
 
-#[derive(Deserialize, Debug, Default)]
-pub struct Settings {
-    #[serde(alias = "web")]
-    pub server: ServerConfig,
-    pub redis: RedisConfig,
-    pub grpc: GRPCConfig,
-}
-
-#[derive(Deserialize, Debug, Default)]
-pub struct ServerConfig {
-    pub host: String,
-    pub port: String,
-}
-
-impl ServerConfig {
-    pub fn addr(&self) -> String {
-        format!("{}:{}", self.host, self.port)
-    }
-}
-
-pub enum Env {
-    Local,
-    Production,
-}
-
-impl ToString for Env {
-    fn to_string(&self) -> String {
-        match self {
-            Env::Local => "local".into(),
-            Env::Production => "production".into(),
+            #[clap(long = stringify!($alias-port), default_value_t = $port, id = stringify!($alias.port))]
+            pub port: u16,
         }
-    }
-}
 
-impl TryFrom<String> for Env {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match &value[..] {
-            "local" => Ok(Env::Local),
-            "production" => Ok(Env::Production),
-            _ => Err("value must be 'local' or 'production'".to_string()),
+        impl $name {
+            pub fn addr(&self) -> String {
+                format!("{}:{}", self.host, self.port)
+            }
         }
-    }
-}
-
-pub fn get_config() -> Result<Settings, config::ConfigError> {
-    let environ: Env = env::var("AXUM_SERVER_APP_ENV")
-        .unwrap_or("local".into())
-        .try_into()
-        .expect("failed TryInto<Env>");
-
-    let config_file = match env::var("CONFIG_FILE") {
-        Ok(f) => Path::new(&f).to_path_buf(),
-        Err(_) => env::current_dir().unwrap().join(format!(
-            "{}/config/{}.yaml",
-            env!("CARGO_CRATE_NAME"),
-            environ.to_string()
-        )),
     };
+}
 
-    let c = Config::builder()
-        .add_source(config::File::from(config_file))
-        .add_source(config::Environment::default().separator("__"))
-        .build()?;
+// codegen server configs
+server_config!(WebConfig, "web", "127.0.0.1", 3000);
+server_config!(RedisConfig, "redis", "127.0.0.1", 6379);
+server_config!(GRPCConfig, "grpc", "[::1]", 50051);
 
-    c.try_deserialize()
+#[derive(Parser, Debug, Deserialize, Default)]
+pub struct Settings {
+    #[serde(flatten)]
+    #[clap(flatten)]
+    pub server: WebConfig,
+
+    #[serde(flatten)]
+    #[clap(flatten)]
+    pub redis: RedisConfig,
+
+    #[serde(flatten)]
+    #[clap(flatten)]
+    pub grpc: GRPCConfig,
 }

@@ -1,6 +1,7 @@
+use clap::Parser;
 use grpc_service::{
     ModelSpec,
-    config::{DatabaseConfig, get_config},
+    config::{DatabaseConfig, Settings},
     inferencer_client::InferencerClient,
     inferencer_server::InferencerServer,
     server::ModelServer,
@@ -112,24 +113,13 @@ pub async fn delete_test_db(config: &DatabaseConfig) -> sqlx::Result<()> {
     Ok(())
 }
 
-fn set_env_vars() {
-    // wokrdir in tests different than main crate
-    let dir = env::current_dir().unwrap();
-
-    unsafe {
-        env::set_var("CONFIG_FILE", dir.join("config/local.yaml"));
-    }
-}
-
 pub async fn spawn_server() -> TestServer {
     // set this once
     if env::var("TEST_LOG").is_ok() {
         LazyLock::force(&TRACING);
     }
 
-    set_env_vars();
-
-    let mut config = get_config().unwrap();
+    let mut config: Settings = Parser::parse_from(None as Option<&str>);
     config.db.db_name = Uuid::new_v4().to_string();
 
     // lazy connect so hopefull we can change db_name here
