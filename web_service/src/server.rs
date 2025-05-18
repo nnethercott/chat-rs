@@ -1,5 +1,7 @@
 use crate::Result;
 use crate::{config::Settings, routes::app_routes};
+use axum::response::Html;
+use axum::routing::get;
 use axum::Router;
 use grpc_service::inferencer_client::InferencerClient;
 use std::sync::Arc;
@@ -59,7 +61,8 @@ impl App {
         let app = Router::new()
             // routes
             .merge(app_routes())
-            // tracing
+            // request tracing
+            .route("/", get(async || Html(include_str!("../chat.html"))))
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(WebMakeSpan)
@@ -74,7 +77,7 @@ impl App {
         Ok(Self { app, config })
     }
 
-    // TODO: add graceful shutdown
+    // TODO: add grpc client pool
     pub async fn run(self) -> Result<()> {
         // connect to grpc service
         let inference_client =

@@ -4,10 +4,6 @@ LLM model serving from scratch in pure Rust. Made with tonic, axum, candle.rs, a
 Currently a work in progress ... 
 
 # Notes to self 
-## flow 
-- local dev
-  - sqlx to apply migrations to postgres image running in docker (so far a la zero2prod but its a nice pattern, sue me)
-
 ## goals & ideas
 tangible:
 - implement inference server based on gRPC ✅
@@ -69,9 +65,9 @@ conceptual:
 - [x] streaming inference
 - [ ] update proto; define interface for streaming/blocking requests
 - [x] move model pool spawn outside of tokio context so we can blocking_send
-- [ ] add clap to all the configs
+- [x] add clap to all the configs
   - [ ] serde + serde_yaml for deserializing from a local file ?
-  - [ ] register relevant environment variables for ports and stuff
+  - [x] register relevant environment variables for ports and stuff
 
 
 ## notes 

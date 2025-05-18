@@ -9,7 +9,10 @@ pub enum Error {
     GrpcStubError(#[from] tonic::Status),
 
     #[error(transparent)]
-    GrpcConnectionError(#[from] tonic::transport::Error),
+    GrpcError(#[from] tonic::transport::Error),
+
+    #[error("Missing gprc client")]
+    UninitializedAppState,
 }
 
 impl IntoResponse for Error {

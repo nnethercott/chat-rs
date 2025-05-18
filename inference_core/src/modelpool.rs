@@ -56,7 +56,7 @@ impl ModelPool {
                     while let Ok(msg) = rx_worker.recv() {
                         match msg {
                             SendBackMessage::Streaming { prompt, sender } => {
-                                if let Err(e) = generate(&mut model, prompt, 32, Some(sender)) {
+                                if let Err(e) = generate(&mut model, prompt, 128, Some(sender)) {
                                     error!(error=?e);
                                 }
                             }
