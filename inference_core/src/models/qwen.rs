@@ -1,5 +1,5 @@
 use super::download_weights;
-use crate::{hf::HfApiManager, tokenizer::TokenOutputStream};
+use crate::{hf::HfApiManager, modelpool::Opts, tokenizer::TokenOutputStream};
 use anyhow::{Error as E, Result};
 use candle_core::{DType, Device, Tensor};
 use candle_transformers::{
@@ -7,14 +7,13 @@ use candle_transformers::{
     generation::LogitsProcessor,
     models::{mimi::candle_nn::VarBuilder, qwen2},
 };
-use tokenizers::Tokenizer;
-use tracing::debug;
+use tokenizers::{Token, Tokenizer};
+use tracing::{debug, warn};
 
 pub struct Model {
     pub device: Device,
-    pub inner: qwen2::ModelForCausalLM,
+    pub inner: qwen2::ModelForCausalLM, // make this an impl CausalLM bound
     pub tokenizer: TokenOutputStream,
-    pub logits_processor: LogitsProcessor,
 }
 
 impl Model {
@@ -39,36 +38,35 @@ impl Model {
             device,
             inner: model,
             tokenizer: TokenOutputStream::new(tokenizer),
-            logits_processor: LogitsProcessor::new(42, Some(0.4), None),
         })
     }
 }
 
 pub fn generate(
-    model: &mut Model,
+    model: &mut Model, // TODO: replace this with a trait bound
     prompt: String,
-    max_new_tokens: usize,
+    opts: Opts,
     tx: Option<tokio::sync::mpsc::Sender<String>>,
 ) -> Result<String> {
+    let mut logits_processor = LogitsProcessor::new(42, opts.temperature, opts.top_p);
+    let eos_tokens: Vec<u32> = opts
+        .eos_tokens
+        .iter()
+        .filter_map(|&token| {
+            match model.tokenizer.get_vocab(true).get(token).copied() {
+                Some(t) => Some(t),
+                None => {
+                    warn!("cannot find the '{}' token", token);
+                    None
+                }
+            }
+        })
+        .collect();
+
     let encoding = model.tokenizer.encode(prompt, true).map_err(E::msg)?;
     let mut tokens = encoding.get_ids().to_vec();
 
-    // eos tokens for qwen2
-    let eos_token = match model
-        .tokenizer
-        .get_vocab(true)
-        .get("<|endoftext|>")
-        .copied()
-    {
-        Some(token) => token,
-        None => anyhow::bail!("cannot find the <|endoftext|> token"),
-    };
-    let eos_token2 = match model.tokenizer.get_vocab(true).get("<|im_end|>").copied() {
-        Some(token) => token,
-        None => anyhow::bail!("cannot find the <|im_end|> token"),
-    };
-
-    for index in 0..max_new_tokens {
+    for index in 0..opts.max_new_tokens {
         let context_size = if index > 0 { 1 } else { tokens.len() };
         let start_pos = tokens.len().saturating_sub(context_size);
         let ctxt = &tokens[start_pos..];
@@ -78,17 +76,16 @@ pub fn generate(
         let logits = model.inner.forward(&input_ids, start_pos)?;
         let logits = logits.squeeze(0)?.squeeze(0)?.to_dtype(DType::F32)?;
 
-        // TODO: add a config for generation
         let logits = {
             let start_at = tokens.len().saturating_sub(64);
             candle_transformers::utils::apply_repeat_penalty(
                 &logits,
-                1.0, // https://huggingface.co/Qwen/Qwen3-4B `presence_penalty`
+                opts.repeat_penalty.unwrap_or(1.0),
                 &tokens[start_at..],
             )?
         };
 
-        let next_token = model.logits_processor.sample(&logits)?;
+        let next_token = logits_processor.sample(&logits)?;
         tokens.push(next_token);
 
         // maybe stream back
@@ -101,7 +98,7 @@ pub fn generate(
             }
         }
 
-        if next_token == eos_token || next_token == eos_token2 {
+        if eos_tokens.contains(&next_token) {
             break;
         }
     }

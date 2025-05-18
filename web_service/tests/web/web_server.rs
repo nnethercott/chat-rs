@@ -64,15 +64,12 @@ async fn test_list_models_endpoint() {
     [
         ModelSpec {
             model_id: "model1",
-            model_type: Image,
         },
         ModelSpec {
             model_id: "model2",
-            model_type: Text,
         },
         ModelSpec {
             model_id: "model3",
-            model_type: Image,
         },
     ]
     "#);

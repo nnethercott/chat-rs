@@ -2,6 +2,7 @@ use anyhow::Error as E;
 use anyhow::Result;
 use candle_core::DType;
 use candle_core::Tensor;
+use candle_transformers::generation::LogitsProcessor;
 use inference_core::models::qwen::Model;
 
 fn main() {
@@ -52,7 +53,8 @@ fn run(mut model: Model, prompt: &str, sample_len: usize) -> Result<()> {
             candle_transformers::utils::apply_repeat_penalty(&logits, 1.5, &tokens[start_at..])?
         };
 
-        let next_token = model.logits_processor.sample(&logits)?;
+        let mut logits_processor = LogitsProcessor::new(42, Some(0.4), None);
+        let next_token = logits_processor.sample(&logits)?;
         tokens.push(next_token);
         if next_token == eos_token || next_token == eos_token2 {
             break;

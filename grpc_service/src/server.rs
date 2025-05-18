@@ -41,12 +41,13 @@ impl ModelServer {
         Ok(())
     }
 
+    // batch insertion
     async fn add_models(&self, models: Vec<ModelSpec>) -> sqlx::Result<u64> {
-        let mut query_builder = QueryBuilder::new("INSERT INTO models(model_id, model_type)");
+        let mut query_builder = QueryBuilder::new("INSERT INTO models(spec)");
 
         // todo! maybe look into unnest
         query_builder.push_values(models, |mut b, model| {
-            b.push_bind(model.model_id).push_bind(model.model_type);
+            b.push_bind(model);
         });
 
         let n_rows = query_builder
@@ -65,14 +66,6 @@ impl ModelServer {
 
 #[tonic::async_trait]
 impl Inferencer for ModelServer {
-    async fn run_inference(
-        &self,
-        _request: Request<InferenceRequest>,
-    ) -> Result<Response<InferenceResponse>, Status> {
-        // use onnx inference from crate we haven't defined yet ...
-        todo!()
-    }
-
     #[doc = "Server streaming response type for the ListModels method."]
     type ListModelsStream = ReceiverStream<Result<ModelSpec, Status>>;
 
@@ -120,7 +113,7 @@ impl Inferencer for ModelServer {
         let prompt = request.into_inner();
 
         let (tx, rx) = mpsc::channel(1024);
-        let req = SendBackMessage::Streaming { prompt, sender: tx };
+        let req = SendBackMessage::Streaming { prompt, sender: tx, opts: Default::default()};
 
         // schedule inference job
         self.model_pool.infer(req).unwrap();
@@ -130,6 +123,13 @@ impl Inferencer for ModelServer {
         let adpt = ReceiverStream::new(rx).map(Ok);
 
         Ok(Response::new(Box::pin(adpt)))
+    }
+
+    async fn generate(
+        &self,
+        request: Request<InferenceRequest>,
+    ) -> Result<Response<InferenceResponse>, Status> {
+        todo!()
     }
 }
 

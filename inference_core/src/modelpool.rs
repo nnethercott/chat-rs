@@ -12,11 +12,34 @@ pub enum SendBackMessage {
     Streaming {
         prompt: String,
         sender: tokio::sync::mpsc::Sender<String>,
+        opts: Opts,
     },
     Blocking {
         prompt: String,
         sender: tokio::sync::oneshot::Sender<String>,
+        opts: Opts,
     },
+}
+
+// options to control generation
+pub struct Opts{
+    pub max_new_tokens: usize, 
+    pub eos_tokens: Vec<&'static str>,
+    pub top_k: Option<usize>,
+    pub top_p: Option<f64>,
+    pub temperature: Option<f64>,
+    pub repeat_penalty: Option<f32>,
+}
+
+impl Default for Opts{
+    fn default() -> Self {
+        Self{
+            max_new_tokens: 128, 
+            eos_tokens: vec![],
+            temperature: Some(0.8),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -50,18 +73,21 @@ impl ModelPool {
                 let mut model = Qwen::from_pretrained("Qwen/Qwen2.5-0.5B-Instruct".into())
                     .map_err(Error::ModelLoadError)?;
 
-                info!("model loaded in thread: {:?}", thread::current().id());
+                let t_id = thread::current().id();
+                info!("model loaded in thread: {:?}", t_id);
 
                 loop {
                     while let Ok(msg) = rx_worker.recv() {
+                        info!("request was picked up in thread: {:?}", t_id);
+
                         match msg {
-                            SendBackMessage::Streaming { prompt, sender } => {
-                                if let Err(e) = generate(&mut model, prompt, 128, Some(sender)) {
+                            SendBackMessage::Streaming { prompt, sender, opts } => {
+                                if let Err(e) = generate(&mut model, prompt, opts, Some(sender)) {
                                     error!(error=?e);
                                 }
                             }
-                            SendBackMessage::Blocking { prompt, sender } => {
-                                match generate(&mut model, prompt, 32, None) {
+                            SendBackMessage::Blocking { prompt, sender, opts } => {
+                                match generate(&mut model, prompt, opts, None) {
                                     Ok(resp) => sender.send(resp).expect("failed to send back"),
                                     Err(e) => error!(error=?e),
                                 }

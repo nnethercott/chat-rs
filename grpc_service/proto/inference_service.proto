@@ -4,35 +4,54 @@ package inferenceservice;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
+// api we'd like from an llm service
 service Inferencer{
-  rpc RunInference(InferenceRequest) returns (InferenceResponse);
   rpc ListModels(google.protobuf.Empty) returns (stream ModelSpec);
   // rpc runBatchedInference(stream InferenceRequest) returns (stream InferenceResponse);
   rpc AddModels(stream ModelSpec) returns (google.protobuf.UInt64Value);
+  rpc Generate(InferenceRequest) returns (InferenceResponse);
   rpc GenerateStreaming(google.protobuf.StringValue) returns (stream google.protobuf.StringValue);
-}
-
-// TODO: make GenerateStreaming arg into openai like payload
-
-enum ModelType{
-  IMAGE = 0; 
-  TEXT = 1;
 }
 
 message ModelSpec{
   string model_id = 1;
-  ModelType model_type = 2;
+}
+
+message SamplingOpts{
+  double temperature = 1;
+  int32 topk = 2;
+  int32 max_new_tokens = 3;
+}
+
+enum Role{
+  USER = 0;
+  AGENT = 1;
+  SYSTEM = 2;
+}
+
+message Turn{
+  Role role = 1; 
+  oneof data{
+    string text = 2;
+    bytes image_bytes = 3;
+  }
 }
 
 message InferenceRequest{
   ModelSpec model = 1;
-  oneof data{
-      bytes image_bytes = 2;
-      string text = 3;
-    }
+  string prompt = 2;
+  repeated Turn messages = 3;
+  optional SamplingOpts opts = 4;
 }
 
+message Usage{
+    int32 completion_tokens = 1;
+    int32 prompt_tokens = 2;
+  }
+
 message InferenceResponse{
-  repeated double logits = 1;
-  int32 timestamp = 2;
+  int32 timestamp = 1;
+  Usage usage = 2;
+  string response = 3;
+  repeated double logprobs = 4;
 }

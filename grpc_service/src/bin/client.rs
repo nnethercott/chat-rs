@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use grpc_service::{ModelSpec, ModelType, inferencer_client::InferencerClient};
+use grpc_service::{inferencer_client::InferencerClient, InferenceRequest, ModelSpec};
 use tokio_stream::StreamExt;
 use tonic::Request;
 
@@ -20,15 +20,12 @@ async fn main() {
             .add_models(tokio_stream::iter(vec![
                 ModelSpec {
                     model_id: "alibaba/qwen2.5".into(),
-                    model_type: ModelType::Text.into(),
                 },
                 ModelSpec {
                     model_id: "jina/embeddingsv2".into(),
-                    model_type: ModelType::Text.into(),
                 },
                 ModelSpec {
                     model_id: "meta/llama4".into(),
-                    model_type: ModelType::Text.into(),
                 },
             ]))
             .await
@@ -42,9 +39,8 @@ async fn main() {
             println!("{:?}", model);
         }
 
-        // run an inference
         let mut rx = client
-            .generate_streaming(Request::new("tell me a funny joke.".into()))
+            .generate_streaming(Request::new("tell me a funny joke".into()))
             .await
             .unwrap()
             .into_inner();

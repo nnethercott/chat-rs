@@ -32,15 +32,12 @@ impl Inferencer for MockGrpc {
         let model_list = vec![
             ModelSpec {
                 model_id: "model1".into(),
-                model_type: 0,
             },
             ModelSpec {
                 model_id: "model2".into(),
-                model_type: 1,
             },
             ModelSpec {
                 model_id: "model3".into(),
-                model_type: 0,
             },
         ];
 
@@ -60,17 +57,6 @@ impl Inferencer for MockGrpc {
         Ok(Response::new(42))
     }
 
-    async fn run_inference(
-        &self,
-        _request: Request<InferenceRequest>,
-    ) -> Result<Response<InferenceResponse>, Status> {
-        let resp = InferenceResponse {
-            logits: vec![1.0, 2.0, 3.0],
-            timestamp: 42,
-        };
-        Ok(Response::new(resp))
-    }
-
     #[doc = " Server streaming response type for the GenerateStreaming method."]
     type GenerateStreamingStream =
         Pin<Box<dyn Stream<Item = Result<String, Status>> + Send + Sync + 'static>>;
@@ -79,6 +65,13 @@ impl Inferencer for MockGrpc {
         &self,
         _request: tonic::Request<String>,
     ) -> std::result::Result<Response<Self::GenerateStreamingStream>, Status> {
+        todo!()
+    }
+
+    async fn generate(
+        &self,
+        request: Request<InferenceRequest>,
+    ) -> Result<Response<InferenceResponse>, Status> {
         todo!()
     }
 }
