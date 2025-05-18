@@ -35,6 +35,8 @@ async fn handle_websocket(mut stream: WebSocket, state: AppState, id: u32) {
                     info!(token=%word);
                     sender.send(Message::Text(Utf8Bytes::from(word))).await;
                 }
+                // send return sequence ?
+                sender.send(Message::Text(Utf8Bytes::from_static("\r\n"))).await;
             } else {
                 warn!(error=?resp);
                 break;
