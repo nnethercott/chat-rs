@@ -1,13 +1,16 @@
-use tracing::{error, info};
-
-use crate::errors::{Error, Result};
-use crate::models::qwen::{Model as Qwen, generate};
+use crate::{
+    errors::{Error, Result},
+    generate,
+    models::qwen::Model as Qwen,
+};
 use std::thread;
 use std::{sync::Arc, thread::JoinHandle};
+use tracing::{error, info};
 
 // const MODEL_WORKER_THREADS: usize = 1;
 
 // TODO: make Message enum for internal usage; streaming and blob
+#[derive(Debug)]
 pub enum SendBackMessage {
     Streaming {
         prompt: String,
@@ -22,22 +25,25 @@ pub enum SendBackMessage {
 }
 
 // options to control generation
-pub struct Opts{
-    pub max_new_tokens: usize, 
-    pub eos_tokens: Vec<&'static str>,
-    pub top_k: Option<usize>,
+#[derive(Debug)]
+pub struct Opts {
+    pub max_new_tokens: u32,
+    pub eos_tokens: Vec<String>,
+    pub top_k: Option<u32>,
     pub top_p: Option<f64>,
     pub temperature: Option<f64>,
     pub repeat_penalty: Option<f32>,
 }
 
-impl Default for Opts{
+impl Default for Opts {
     fn default() -> Self {
-        Self{
-            max_new_tokens: 128, 
+        Self {
+            max_new_tokens: 128,
             eos_tokens: vec![],
-            temperature: Some(0.8),
-            ..Default::default()
+            temperature: Some(0.2),
+            top_k: None, 
+            top_p: None, 
+            repeat_penalty: None
         }
     }
 }
@@ -81,17 +87,23 @@ impl ModelPool {
                         info!("request was picked up in thread: {:?}", t_id);
 
                         match msg {
-                            SendBackMessage::Streaming { prompt, sender, opts } => {
+                            SendBackMessage::Streaming {
+                                prompt,
+                                sender,
+                                opts,
+                            } => {
                                 if let Err(e) = generate(&mut model, prompt, opts, Some(sender)) {
                                     error!(error=?e);
                                 }
                             }
-                            SendBackMessage::Blocking { prompt, sender, opts } => {
-                                match generate(&mut model, prompt, opts, None) {
-                                    Ok(resp) => sender.send(resp).expect("failed to send back"),
-                                    Err(e) => error!(error=?e),
-                                }
-                            }
+                            SendBackMessage::Blocking {
+                                prompt,
+                                sender,
+                                opts,
+                            } => match generate(&mut model, prompt, opts, None) {
+                                Ok(resp) => sender.send(resp).expect("failed to send back"),
+                                Err(e) => error!(error=?e),
+                            },
                         };
 
                         model.inner.clear_kv_cache();

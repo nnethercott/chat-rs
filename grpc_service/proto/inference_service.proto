@@ -18,9 +18,12 @@ message ModelSpec{
 }
 
 message SamplingOpts{
-  double temperature = 1;
-  int32 topk = 2;
-  int32 max_new_tokens = 3;
+  uint32 max_new_tokens = 1;
+  repeated string eos_tokens = 2;
+  optional uint32 top_k = 3;
+  optional double top_p = 4;
+  optional double temperature = 5;
+  optional float repeat_penalty = 6;
 }
 
 enum Role{
@@ -41,7 +44,7 @@ message InferenceRequest{
   ModelSpec model = 1;
   string prompt = 2;
   repeated Turn messages = 3;
-  optional SamplingOpts opts = 4;
+  SamplingOpts opts = 4;
 }
 
 message Usage{

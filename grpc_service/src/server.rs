@@ -5,7 +5,7 @@ use crate::{
     config::Settings,
     inferencer_server::{Inferencer, InferencerServer},
 };
-use inference_core::modelpool::{ModelPool, SendBackMessage};
+use inference_core::modelpool::{ModelPool, Opts, SendBackMessage};
 use sqlx::{PgPool, QueryBuilder};
 use tokio::sync::{Mutex, mpsc};
 use tokio_stream::{Stream, StreamExt, wrappers::ReceiverStream};
@@ -113,7 +113,11 @@ impl Inferencer for ModelServer {
         let prompt = request.into_inner();
 
         let (tx, rx) = mpsc::channel(1024);
-        let req = SendBackMessage::Streaming { prompt, sender: tx, opts: Default::default()};
+        let req = SendBackMessage::Streaming {
+            prompt,
+            sender: tx,
+            opts: Opts::default(),
+        };
 
         // schedule inference job
         self.model_pool.infer(req).unwrap();
@@ -129,7 +133,30 @@ impl Inferencer for ModelServer {
         &self,
         request: Request<InferenceRequest>,
     ) -> Result<Response<InferenceResponse>, Status> {
-        todo!()
+        let inference_request = request.into_inner();
+
+        let opts: Opts = inference_request
+            .opts
+            .map(Into::into)
+            .unwrap_or_else(Default::default);
+
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let req = SendBackMessage::Blocking {
+            prompt: inference_request.prompt,
+            sender: tx,
+            opts,
+        };
+
+        // schedule inference job
+        self.model_pool.infer(req).unwrap();
+
+        // ... and await response
+        let response = rx.await.map_err(|e| Status::internal(format!("{:?}", e)))?;
+
+        Ok(Response::new(InferenceResponse {
+            response,
+            ..Default::default()
+        }))
     }
 }
 

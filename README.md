@@ -68,7 +68,7 @@ conceptual:
 - [x] add clap to all the configs
   - [ ] serde + serde_yaml for deserializing from a local file ?
   - [x] register relevant environment variables for ports and stuff
-
+- [ ] make gh issue about cleaning up SamplingOpts  vs Opts
 
 ## notes 
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another
