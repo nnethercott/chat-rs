@@ -6,15 +6,11 @@ import "google/protobuf/wrappers.proto";
 
 // api we'd like from an llm service
 service Inferencer{
-  rpc ListModels(google.protobuf.Empty) returns (stream ModelSpec);
+  rpc ListModels(google.protobuf.Empty) returns (stream google.protobuf.StringValue);
   // rpc runBatchedInference(stream InferenceRequest) returns (stream InferenceResponse);
-  rpc AddModels(stream ModelSpec) returns (google.protobuf.UInt64Value);
+  rpc AddModels(stream google.protobuf.StringValue) returns (google.protobuf.UInt64Value);
   rpc Generate(InferenceRequest) returns (InferenceResponse);
   rpc GenerateStreaming(google.protobuf.StringValue) returns (stream google.protobuf.StringValue);
-}
-
-message ModelSpec{
-  string model_id = 1;
 }
 
 message SamplingOpts{
@@ -41,7 +37,7 @@ message Turn{
 }
 
 message InferenceRequest{
-  ModelSpec model = 1;
+  string model_id = 1;
   string prompt = 2;
   repeated Turn messages = 3;
   SamplingOpts opts = 4;

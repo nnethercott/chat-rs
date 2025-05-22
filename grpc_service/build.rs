@@ -15,10 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "InferenceRequest",
             "#[derive(serde::Serialize, serde::Deserialize)]",
         )
-        .type_attribute(
-            "Turn",
-            "#[derive(serde::Serialize, serde::Deserialize)]",
-        )
+        .type_attribute("Turn", "#[derive(serde::Serialize, serde::Deserialize)]")
         .type_attribute(
             "Turn.data",
             "#[derive(serde::Serialize, serde::Deserialize)]",

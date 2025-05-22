@@ -1,8 +1,8 @@
+use crate::{modelpool::Opts, models::qwen::Model};
+use anyhow::{Error as E, Result};
 use candle_core::{DType, Tensor};
 use candle_transformers::generation::LogitsProcessor;
 use tracing::{debug, warn};
-use anyhow::{Error as E, Result};
-use crate::{modelpool::Opts, models::qwen::Model};
 
 pub fn generate(
     model: &mut Model, // TODO: replace this with a trait bound
@@ -14,15 +14,15 @@ pub fn generate(
     let eos_tokens: Vec<u32> = opts
         .eos_tokens
         .iter()
-        .filter_map(|token| {
-            match model.tokenizer.get_vocab(true).get(token).copied() {
+        .filter_map(
+            |token| match model.tokenizer.get_vocab(true).get(token).copied() {
                 Some(t) => Some(t),
                 None => {
                     warn!("cannot find the '{}' token", token);
                     None
                 }
-            }
-        })
+            },
+        )
         .collect();
 
     let encoding = model.tokenizer.encode(prompt, true).map_err(E::msg)?;

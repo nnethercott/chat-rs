@@ -13,6 +13,8 @@ pub enum Error {
     #[error(transparent)]
     TaskScheduleError(#[from] crossbeam_channel::SendError<SendBackMessage>),
 
+    // #[error(transparent)]
+    // TaskScheduleTimeout(), // this might be good
     #[error("failed with reason: {reason}")]
     Other { reason: &'static str },
 }

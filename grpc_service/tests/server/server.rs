@@ -1,5 +1,5 @@
 use crate::helpers::spawn_server;
-use grpc_service::{ModelSpec, inferencer_client::InferencerClient};
+use grpc_service::inferencer_client::InferencerClient;
 use uuid::Uuid;
 
 // TODO: init tracing in tests!
@@ -9,9 +9,7 @@ use uuid::Uuid;
 async fn test_add_and_list_models_works() {
     let mut ts = spawn_server().await;
 
-    let mut models = vec![ModelSpec {
-        model_id: Uuid::new_v4().to_string(),
-    }];
+    let mut models = vec![Uuid::new_v4().to_string()];
 
     // add some models
     let m = ts.add_models_to_registry(models).await;

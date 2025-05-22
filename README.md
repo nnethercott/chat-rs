@@ -1,9 +1,9 @@
 # chat-rs
 LLM model serving from scratch in pure Rust. Made with tonic, axum, candle.rs, and ❤️
 
-Currently a work in progress ... 
+Currently a work in progress ...
 
-# Notes to self 
+# Notes to self
 ## goals & ideas
 tangible:
 - implement inference server based on gRPC ✅
@@ -24,7 +24,7 @@ tangible:
 - lightweight models would be better for testing locally; *embedding*, xgboost, time series models, <1b llms, etc.
   - need a **use case**
 
-## web 
+## web
 - TODO: figure out how we can configure num replicas of the site ...
   - is this done at the tokio level or through k8s deployments
   - for each replica we'll need an internal IP used in the pod network, would this come from an env variable override of our config through a ConfigMap?
@@ -35,7 +35,7 @@ tangible:
 - in a v2: websocket or chunked in routes/chat to simulate real-time chat
 
 ### notes on logging
-- tracing layer for grpc like [this](https://docs.rs/tower-http/latest/tower_http/trace/struct.TraceLayer.html#method.new_for_grpc)  
+- tracing layer for grpc like [this](https://docs.rs/tower-http/latest/tower_http/trace/struct.TraceLayer.html#method.new_for_grpc)
   - or we can use the `interceptor` in the server init to inject the logging middleware
 - we probably want 1) gRPC request-level logs, and 2) logging the internals through #\[instrument\]
 
@@ -44,13 +44,13 @@ conceptual:
 - review async rust
 - multi-service k8s deployments (tonic grpc server, typescript(?) frontend, axum backend, db, buckets)
 
-## todos 
-- [x] [grpc basics](https://grpc.io/docs/languages/python/basics/) with examples 
+## todos
+- [x] [grpc basics](https://grpc.io/docs/languages/python/basics/) with examples
 - [x] skim tonic docs
-- [x] add test actions and branch protection rules 
+- [x] add test actions and branch protection rules
 - [x] cargo workspace setup
 - [x] re-read docs on streams and futures in rust (see if we can avoid the ReceiverStream pattern)
-- [x] setup health probe alongside service with tonic-health [docs](https://github.com/hyperium/tonic/tree/master/examples/src/health) 
+- [x] setup health probe alongside service with tonic-health [docs](https://github.com/hyperium/tonic/tree/master/examples/src/health)
 - [x] setup db to store model registry (could this be replaced down the line with mlflow?)
 - [x] add reflection
 - [x] better tests
@@ -68,9 +68,11 @@ conceptual:
 - [x] add clap to all the configs
   - [ ] serde + serde_yaml for deserializing from a local file ?
   - [x] register relevant environment variables for ports and stuff
-- [ ] make gh issue about cleaning up SamplingOpts  vs Opts
+- [ ] make gh issue about cleaning up SamplingOpts  vs Opts -> do this after branch merge
+- [ ] gh packages for each service ?
+- [ ] add a kill signal to stop token generation
 
-## notes 
+## notes
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another
 - running web is done with `cargo run --bin web`
 - to run a health check first spin up the server with `cargo run --bin server` then `grpc-health-probe -addr="[::1]:50051"`

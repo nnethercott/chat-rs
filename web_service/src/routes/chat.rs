@@ -20,7 +20,7 @@ pub(super) async fn chat(
     ws.on_upgrade(move |socket| handle_websocket(socket, app_state, id))
 }
 
-async fn handle_websocket(mut stream: WebSocket, state: AppState, id: u32) {
+async fn handle_websocket(stream: WebSocket, state: AppState, id: u32) {
     // split into send and recv
     let (mut sender, mut receiver) = stream.split();
 
@@ -36,7 +36,9 @@ async fn handle_websocket(mut stream: WebSocket, state: AppState, id: u32) {
                     sender.send(Message::Text(Utf8Bytes::from(word))).await;
                 }
                 // send return sequence ?
-                sender.send(Message::Text(Utf8Bytes::from_static("\r\n"))).await;
+                sender
+                    .send(Message::Text(Utf8Bytes::from_static("\r\n")))
+                    .await;
             } else {
                 warn!(error=?resp);
                 break;

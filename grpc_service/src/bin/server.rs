@@ -1,6 +1,6 @@
 use clap::Parser;
 use grpc_service::{Error, config::Settings, server::run_server};
-use inference_core::modelpool::ModelPool;
+use inference_core::modelpool::{Hardware, ModelPool};
 use tracing::{error, info};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
@@ -20,7 +20,7 @@ fn main() -> Result<(), Error> {
         .init();
 
     info!(config=?config);
-    let model_pool = ModelPool::spawn(1).unwrap();
+    let model_pool = ModelPool::spawn(1, Hardware::Cpu).unwrap();
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async move {

@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use grpc_service::{inferencer_client::InferencerClient, InferenceRequest, ModelSpec};
+use grpc_service::inferencer_client::InferencerClient;
 use tokio_stream::StreamExt;
 use tonic::Request;
 
@@ -18,15 +18,9 @@ async fn main() {
         // add some models to the server
         let n = client
             .add_models(tokio_stream::iter(vec![
-                ModelSpec {
-                    model_id: "alibaba/qwen2.5".into(),
-                },
-                ModelSpec {
-                    model_id: "jina/embeddingsv2".into(),
-                },
-                ModelSpec {
-                    model_id: "meta/llama4".into(),
-                },
+                "alibaba/qwen2.5".into(),
+                "jina/embeddingsv2".into(),
+                "meta/llama4".into(),
             ]))
             .await
             .expect("insert failed")

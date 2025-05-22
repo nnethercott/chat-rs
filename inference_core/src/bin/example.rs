@@ -15,7 +15,9 @@ fn main() {
     );
 
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let model = rt.block_on(async { Model::from_pretrained("Qwen/Qwen2-0.5B".into()).unwrap() });
+    let model = rt.block_on(async {
+        Model::from_pretrained("Qwen/Qwen2-0.5B".into(), candle_core::Device::Cpu).unwrap()
+    });
 
     // runs outside of tokios executor
     run(model, "tell me a joke", 32).expect("works");

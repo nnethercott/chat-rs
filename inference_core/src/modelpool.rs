@@ -9,12 +9,12 @@ use tracing::{error, info};
 
 // const MODEL_WORKER_THREADS: usize = 1;
 
-// TODO: make Message enum for internal usage; streaming and blob
 #[derive(Debug)]
 pub enum SendBackMessage {
     Streaming {
         prompt: String,
         sender: tokio::sync::mpsc::Sender<String>,
+        // kill_sig: tokio::sync::oneshot::Sender<()>,
         opts: Opts,
     },
     Blocking {
@@ -22,6 +22,12 @@ pub enum SendBackMessage {
         sender: tokio::sync::oneshot::Sender<String>,
         opts: Opts,
     },
+}
+
+#[derive(Clone, Copy)]
+pub enum Hardware {
+    Cpu,
+    Gpu,
 }
 
 // options to control generation
@@ -41,9 +47,9 @@ impl Default for Opts {
             max_new_tokens: 128,
             eos_tokens: vec![],
             temperature: Some(0.2),
-            top_k: None, 
-            top_p: None, 
-            repeat_penalty: None
+            top_k: None,
+            top_p: None,
+            repeat_penalty: None,
         }
     }
 }
@@ -64,7 +70,7 @@ impl ModelPool {
         }
     }
 
-    pub fn spawn(num_replicas: usize) -> Result<Self> {
+    pub fn spawn(num_replicas: usize, device: Hardware) -> Result<Self> {
         let (tx, rx) = crossbeam_channel::unbounded();
         let rx = Arc::new(rx);
 
@@ -76,7 +82,14 @@ impl ModelPool {
             let rx_worker = Arc::clone(&rx);
 
             let handle = std::thread::spawn(move || {
-                let mut model = Qwen::from_pretrained("Qwen/Qwen2.5-0.5B-Instruct".into())
+
+                // get device
+                let device = match device {
+                    Hardware::Cpu => candle_core::Device::Cpu,
+                    Hardware::Gpu => unimplemented!(),
+                };
+
+                let mut model = Qwen::from_pretrained("Qwen/Qwen2.5-0.5B-Instruct".into(), device)
                     .map_err(Error::ModelLoadError)?;
 
                 let t_id = thread::current().id();

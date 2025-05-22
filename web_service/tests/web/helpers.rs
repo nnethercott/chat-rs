@@ -2,7 +2,7 @@ use std::pin::Pin;
 
 use futures::Stream;
 use grpc_service::{
-    InferenceRequest, InferenceResponse, ModelSpec,
+    InferenceRequest, InferenceResponse,
     inferencer_client::InferencerClient,
     inferencer_server::{Inferencer, InferencerServer},
 };
@@ -21,7 +21,7 @@ pub struct MockGrpc;
 // a whole new grpc server ??
 #[tonic::async_trait]
 impl Inferencer for MockGrpc {
-    type ListModelsStream = ReceiverStream<Result<ModelSpec, Status>>;
+    type ListModelsStream = ReceiverStream<Result<String, Status>>;
 
     async fn list_models(
         &self,
@@ -29,17 +29,7 @@ impl Inferencer for MockGrpc {
     ) -> Result<Response<Self::ListModelsStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
 
-        let model_list = vec![
-            ModelSpec {
-                model_id: "model1".into(),
-            },
-            ModelSpec {
-                model_id: "model2".into(),
-            },
-            ModelSpec {
-                model_id: "model3".into(),
-            },
-        ];
+        let model_list = vec!["model1".into(), "model2".into(), "model3".into()];
 
         tokio::spawn(async move {
             for spec in model_list {
@@ -52,7 +42,7 @@ impl Inferencer for MockGrpc {
 
     async fn add_models(
         &self,
-        _request: tonic::Request<Streaming<ModelSpec>>,
+        _request: tonic::Request<Streaming<String>>,
     ) -> Result<Response<u64>, Status> {
         Ok(Response::new(42))
     }

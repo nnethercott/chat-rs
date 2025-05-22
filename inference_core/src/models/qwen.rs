@@ -1,14 +1,12 @@
 use super::download_weights;
-use crate::{hf::HfApiManager, modelpool::Opts, tokenizer::TokenOutputStream};
+use crate::{hf::HfApiManager, tokenizer::TokenOutputStream};
 use anyhow::{Error as E, Result};
-use candle_core::{DType, Device, Tensor};
+use candle_core::{DType, Device};
 use candle_transformers::{
     self,
-    generation::LogitsProcessor,
     models::{mimi::candle_nn::VarBuilder, qwen2},
 };
-use tokenizers::{Token, Tokenizer};
-use tracing::{debug, warn};
+use tokenizers::Tokenizer;
 
 pub struct Model {
     pub device: Device,
@@ -17,8 +15,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn from_pretrained(model_id: String) -> Result<Self> {
-        let device = Device::Cpu;
+    pub fn from_pretrained(model_id: String, device: Device) -> Result<Self> {
         let api = HfApiManager::new(model_id)?;
 
         // config
@@ -41,7 +38,6 @@ impl Model {
         })
     }
 }
-
 
 // #[async_trait]
 // impl GenerativeModel for Arc<Mutex<Model>> {
