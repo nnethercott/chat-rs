@@ -1,8 +1,8 @@
 use crate::Result;
 use crate::{config::Settings, routes::app_routes};
+use axum::Router;
 use axum::response::Html;
 use axum::routing::get;
-use axum::Router;
 use grpc_service::inferencer_client::InferencerClient;
 use std::sync::Arc;
 use tokio::signal;

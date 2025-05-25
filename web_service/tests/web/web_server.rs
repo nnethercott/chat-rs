@@ -4,7 +4,6 @@ use axum::{
     body::Body,
     http::{self, Request, StatusCode},
 };
-use grpc_service::ModelSpec;
 use http_body_util::BodyExt;
 use insta::assert_debug_snapshot;
 use tower::ServiceExt;
@@ -59,21 +58,12 @@ async fn test_list_models_endpoint() {
 
     // assert payload
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let Json(inner) = Json::<Vec<ModelSpec>>::from_bytes(&bytes).unwrap();
+    let Json(inner) = Json::<Vec<String>>::from_bytes(&bytes).unwrap();
     assert_debug_snapshot!(inner, @r#"
     [
-        ModelSpec {
-            model_id: "model1",
-            model_type: Image,
-        },
-        ModelSpec {
-            model_id: "model2",
-            model_type: Text,
-        },
-        ModelSpec {
-            model_id: "model3",
-            model_type: Image,
-        },
+        "model1",
+        "model2",
+        "model3",
     ]
     "#);
 }

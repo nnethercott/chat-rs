@@ -1,6 +1,6 @@
 pub mod config;
 mod error;
-pub mod pg;
+pub mod proto;
 pub mod server;
 
 pub use error::Error;

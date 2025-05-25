@@ -34,4 +34,3 @@ pub(crate) fn download_weights(repo: &ApiRepo) -> Result<Vec<PathBuf>> {
 
     Ok(weights)
 }
-//

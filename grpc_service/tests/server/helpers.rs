@@ -1,12 +1,11 @@
 use clap::Parser;
 use grpc_service::{
-    ModelSpec,
     config::{DatabaseConfig, Settings},
     inferencer_client::InferencerClient,
     inferencer_server::InferencerServer,
     server::ModelServer,
 };
-use inference_core::modelpool::ModelPool;
+use inference_core::modelpool::{Hardware, ModelPool};
 use sqlx::{Connection, Executor, PgConnection, PgPool, postgres::PgConnectOptions};
 use std::{env, sync::LazyLock, time::Duration};
 use tokio::{net::TcpListener, sync::oneshot, time};
@@ -46,7 +45,7 @@ impl TestServer {
         }
     }
 
-    pub async fn add_models_to_registry(&mut self, models: Vec<ModelSpec>) -> u64 {
+    pub async fn add_models_to_registry(&mut self, models: Vec<String>) -> u64 {
         self.client
             .add_models(tokio_stream::iter(models))
             .await
@@ -54,7 +53,7 @@ impl TestServer {
             .into_inner()
     }
 
-    pub async fn get_registry_models(&mut self) -> Vec<ModelSpec> {
+    pub async fn get_registry_models(&mut self) -> Vec<String> {
         let stream = self
             .client
             .list_models(Request::new(()))
@@ -62,10 +61,7 @@ impl TestServer {
             .expect("failed to get stream")
             .into_inner();
 
-        stream
-            .filter_map(|i| i.ok())
-            .collect::<Vec<ModelSpec>>()
-            .await
+        stream.filter_map(|i| i.ok()).collect::<Vec<String>>().await
     }
 }
 
@@ -126,7 +122,7 @@ pub async fn spawn_server() -> TestServer {
 
     // lazy connect so hopefull we can change db_name here
     let pgpool = create_test_db(&mut config.db).await.unwrap();
-    let model_pool = ModelPool::spawn(0).unwrap();
+    let model_pool = ModelPool::spawn(0, Hardware::Cpu).unwrap();
     let model_server = ModelServer::new(pgpool, model_pool).unwrap();
 
     // set listener on random free port
