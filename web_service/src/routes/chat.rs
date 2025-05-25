@@ -40,7 +40,8 @@ async fn handle_websocket(stream: WebSocket, state: AppState, _id: u32) {
                 // send return sequence
                 sender
                     .send(Message::Text(Utf8Bytes::from_static("\r\n")))
-                    .await.unwrap();
+                    .await
+                    .unwrap();
             } else {
                 warn!(error=?resp);
                 break;
