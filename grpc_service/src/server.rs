@@ -143,7 +143,7 @@ impl Inferencer for ModelServer {
         let opts: Opts = inference_request
             .opts
             .map(Into::into)
-            .unwrap_or_else(Default::default);
+            .unwrap_or_default();
 
         let (tx, rx) = tokio::sync::oneshot::channel();
         let req = SendBackMessage::Blocking {

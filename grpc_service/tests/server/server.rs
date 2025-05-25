@@ -30,15 +30,15 @@ async fn multiple_clients_single_server() {
 
     // manually connect with two clients
     let h1 = tokio::spawn(async move {
-        let client = InferencerClient::connect(format!("http://{}", &a1))
+        let _client = InferencerClient::connect(format!("http://{}", &a1))
             .await
             .unwrap();
     });
     let h2 = tokio::spawn(async move {
-        let client = InferencerClient::connect(format!("http://{}", &a2))
+        let _client = InferencerClient::connect(format!("http://{}", &a2))
             .await
             .unwrap();
     });
 
-    tokio::join!(h1, h2);
+    let _ = tokio::join!(h1, h2);
 }
