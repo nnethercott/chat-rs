@@ -9,7 +9,9 @@ use tokio::signal;
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::transport::Channel;
 use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, MakeSpan, TraceLayer};
-use tracing::{Level, error, info};
+use tower_sessions::SessionManagerLayer;
+use tower_sessions_redis_store::RedisStore;
+use tracing::{debug, error, info, Level};
 use uuid::Uuid;
 
 type Inner = InferencerClient<Channel>;
@@ -75,6 +77,19 @@ impl App {
             );
 
         Ok(Self { app, config })
+    }
+
+    /// opt into persistent sessions
+    /// NOTE: need a mechanism to include/exclude extractor in route 
+    /// -> add feature `redis` ?
+    pub async fn new_with_session_store(config: Settings) -> Result<Self> {
+        let App { app, config } = Self::new(config)?;
+
+        // connect to redis instance
+        let (session_store, _) = config.redis.connect().await?;
+        let session_layer = SessionManagerLayer::new(session_store).with_secure(false);
+        let app = app.layer(session_layer);
+        Ok(App { app, config })
     }
 
     // TODO: add grpc client pool

@@ -1,5 +1,6 @@
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
+use tower_sessions_redis_store::fred;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -13,6 +14,9 @@ pub enum Error {
 
     #[error("Missing gprc client")]
     UninitializedAppState,
+
+    #[error(transparent)]
+    RedisError(#[from] fred::error::Error),
 }
 
 impl IntoResponse for Error {

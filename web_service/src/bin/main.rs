@@ -5,9 +5,7 @@ use web_service::{config::Settings, server::App};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Settings::parse();
-    // let log_level = config.log_level.clone().as_str();
 
-    // more options from docs  where `with_span_list` indicated
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::fmt::layer()
@@ -18,6 +16,6 @@ async fn main() -> anyhow::Result<()> {
         .with(EnvFilter::try_from_default_env().unwrap_or("info".into()))
         .init();
 
-    App::new(config)?.run().await?;
+    App::new_with_session_store(config).await?.run().await?;
     Ok(())
 }

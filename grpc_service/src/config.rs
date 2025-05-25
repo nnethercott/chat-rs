@@ -71,7 +71,7 @@ impl DatabaseConfig {
     }
 }
 
-#[derive(Parser, Deserialize, Debug)]
+#[derive(Parser, Deserialize, Debug, Default)]
 pub struct ServerConfig {
     // host of the grprc server
     #[clap(long = "grpc-host", default_value = "[::1]", id = "server.host")]

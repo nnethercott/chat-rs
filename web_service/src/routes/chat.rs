@@ -7,6 +7,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use tonic::{Request, Streaming};
+use tower_sessions::Session;
 use tracing::{error, info, warn};
 
 use crate::{Error, Result, server::AppState};
@@ -15,6 +16,7 @@ use crate::{Error, Result, server::AppState};
 pub(super) async fn chat(
     ws: WebSocketUpgrade,
     State(app_state): State<AppState>,
+    sesh: Session,
     Path(id): Path<u32>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_websocket(socket, app_state, id))
