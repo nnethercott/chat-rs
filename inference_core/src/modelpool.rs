@@ -82,7 +82,6 @@ impl ModelPool {
             let rx_worker = Arc::clone(&rx);
 
             let handle = std::thread::spawn(move || {
-
                 // get device
                 let device = match device {
                     Hardware::Cpu => candle_core::Device::Cpu,

@@ -7,7 +7,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use tonic::{Request, Streaming};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use crate::{Error, Result, server::AppState};
 
@@ -20,7 +20,7 @@ pub(super) async fn chat(
     ws.on_upgrade(move |socket| handle_websocket(socket, app_state, id))
 }
 
-async fn handle_websocket(stream: WebSocket, state: AppState, id: u32) {
+async fn handle_websocket(stream: WebSocket, state: AppState, _id: u32) {
     // split into send and recv
     let (mut sender, mut receiver) = stream.split();
 
@@ -33,12 +33,14 @@ async fn handle_websocket(stream: WebSocket, state: AppState, id: u32) {
                 // send words through ws
                 while let Some(Ok(word)) = token_stream.next().await {
                     info!(token=%word);
-                    sender.send(Message::Text(Utf8Bytes::from(word))).await;
+                    if let Err(e) = sender.send(Message::Text(Utf8Bytes::from(word))).await {
+                        error!(error = %e);
+                    }
                 }
-                // send return sequence ?
+                // send return sequence
                 sender
                     .send(Message::Text(Utf8Bytes::from_static("\r\n")))
-                    .await;
+                    .await.unwrap();
             } else {
                 warn!(error=?resp);
                 break;
