@@ -59,7 +59,6 @@ conceptual:
 - [x] llvm linker
   - [x] read that article on minimizing build times
 - [x] worker pool for models to serve requests (stateless with redis)
-  - [ ] redis middleware not yet done
 - [x] graceful shutdown
 - [x] basic inference
 - [x] streaming inference
@@ -71,6 +70,9 @@ conceptual:
 - [ ] make gh issue about cleaning up SamplingOpts  vs Opts -> do this after branch merge
 - [ ] gh packages for each service ?
 - [ ] add a kill signal to stop token generation
+- [ ] middleware (message history cache with session)
+  - chatgpt can persist messages since we're signed in. in my case lets just restore m essages across single browser sessions
+  - in any case we just need to make sure a user's messages are retrieved before streaming by **any** model
 
 ## notes
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another
