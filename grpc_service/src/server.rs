@@ -140,10 +140,7 @@ impl Inferencer for ModelServer {
 
         // this is kinda gross but we have a circular dependency if we try to import opts in
         // inference_core
-        let opts: Opts = inference_request
-            .opts
-            .map(Into::into)
-            .unwrap_or_default();
+        let opts: Opts = inference_request.opts.map(Into::into).unwrap_or_default();
 
         let (tx, rx) = tokio::sync::oneshot::channel();
         let req = SendBackMessage::Blocking {

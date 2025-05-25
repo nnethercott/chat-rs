@@ -60,7 +60,7 @@ impl Inferencer for MockGrpc {
 
     async fn generate(
         &self,
-        request: Request<InferenceRequest>,
+        _request: Request<InferenceRequest>,
     ) -> Result<Response<InferenceResponse>, Status> {
         todo!()
     }
