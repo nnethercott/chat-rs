@@ -1,7 +1,7 @@
 # chat-rs
 LLM model serving from scratch in pure Rust. Made with tonic, axum, candle.rs, and ❤️
 
-Currently in active development ...
+Currently in active development so expect this doc to be updated regularly!
 
 # demo
 ![alt-text](./assets/demo.gif)
