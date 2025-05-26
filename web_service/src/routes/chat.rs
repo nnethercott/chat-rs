@@ -11,7 +11,7 @@ use tonic::{Request, Streaming};
 use tower_sessions::Session;
 use tracing::{error, info, warn};
 
-use crate::{Error, Result, server::AppState};
+use crate::{messages::Messages, server::AppState, Error, Result};
 
 const MESSAGE_KEY: &'static str = "MESSAGES";
 
@@ -19,18 +19,15 @@ const MESSAGE_KEY: &'static str = "MESSAGES";
 pub(super) async fn chat(
     ws: WebSocketUpgrade,
     State(app_state): State<AppState>,
-    sesh: Session,
+    chat_history: Messages,
     Path(id): Path<u32>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_websocket(socket, app_state, id, sesh))
+    ws.on_upgrade(move |socket| handle_websocket(socket, app_state, id, chat_history))
 }
 
-async fn handle_websocket(stream: WebSocket, state: AppState, _id: u32, sesh: Session) {
+async fn handle_websocket(stream: WebSocket, state: AppState, _id: u32, mut messages: Messages) {
     // split into send and recv
     let (mut sender, mut receiver) = stream.split();
-
-    // get convo history
-    let mut messages: Vec<Turn> = sesh.get(MESSAGE_KEY).await.unwrap().unwrap_or_default();
 
     while let Some(Ok(msg)) = receiver.next().await {
         if let Message::Text(query) = msg {

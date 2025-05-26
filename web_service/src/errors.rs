@@ -17,6 +17,9 @@ pub enum Error {
 
     #[error(transparent)]
     RedisError(#[from] fred::error::Error),
+
+    #[error(transparent)]
+    SessionError(#[from] tower_sessions::session::Error)
 }
 
 impl IntoResponse for Error {
