@@ -18,7 +18,6 @@ use tower::service_fn;
 
 pub struct MockGrpc;
 
-// a whole new grpc server ??
 #[tonic::async_trait]
 impl Inferencer for MockGrpc {
     type ListModelsStream = ReceiverStream<Result<String, Status>>;

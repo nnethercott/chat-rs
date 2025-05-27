@@ -13,8 +13,6 @@ use tracing::{error, info, warn};
 
 use crate::{messages::Messages, server::AppState, Error, Result};
 
-const MESSAGE_KEY: &'static str = "MESSAGES";
-
 // GET /models/{id}/chat
 pub(super) async fn chat(
     ws: WebSocketUpgrade,
@@ -33,6 +31,7 @@ async fn handle_websocket(stream: WebSocket, state: AppState, _id: u32, mut mess
         if let Message::Text(query) = msg {
             info!(query=%query.as_str());
 
+            // add user query to message history
             messages.push(Turn {
                 role: Role::User.into(),
                 data: Some(Data::Text(query.to_string())),

@@ -4,11 +4,12 @@ use axum::{
     body::Body,
     http::{self, Request, StatusCode},
 };
+use clap::Parser;
 use http_body_util::BodyExt;
 use insta::assert_debug_snapshot;
 use tower::ServiceExt;
 use web_service::{
-    config::Settings,
+    config::{RedisConfig, Settings},
     server::{App, AppState},
 };
 
@@ -66,4 +67,34 @@ async fn test_list_models_endpoint() {
         "model3",
     ]
     "#);
+}
+
+#[tokio::test]
+async fn test_message_extractor() {
+    // TODO: check if we can use default and then update with an impl Deserialize
+    let mut config: Settings = Parser::parse_from(None as Option<&str>);
+
+    // FIXME: default isn't implemented, only default vals for clap!
+    config.redis = Some(RedisConfig::default());
+    dbg!("{:?}", &config.redis);
+
+    let app = App::new_with_session_store(config)
+        .await
+        .unwrap()
+        .into_router();
+
+    let response = app
+        .with_state(AppState::default())
+        .oneshot(
+            Request::builder()
+                .method(http::Method::GET)
+                .uri("/messages")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    //TODO: check contents
 }

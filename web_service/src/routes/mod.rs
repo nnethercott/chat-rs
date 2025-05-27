@@ -1,4 +1,4 @@
-use crate::server::AppState;
+use crate::{messages::Messages, server::AppState};
 use axum::{Router, response::IntoResponse, routing::get};
 
 mod chat;
@@ -10,10 +10,9 @@ use chat::chat;
 use models::list_models;
 use tower_sessions::Session;
 
-pub async fn count(sesh: Session) -> impl IntoResponse {
-    let mut val: usize = sesh.get("NATE").await.unwrap().unwrap_or_default();
-    sesh.insert("NATE", val+1).await.unwrap();
-    format!("count is {}", val)
+// test route
+pub async fn messages(messages: Messages) -> impl IntoResponse {
+    messages.to_string() 
 }
 
 pub(crate) fn app_routes() -> Router<AppState> {
@@ -25,5 +24,5 @@ pub(crate) fn app_routes() -> Router<AppState> {
     Router::new()
         .nest("/models", model_routes)
         .route("/healthz", get(async || {})) // `IntoRespone` impl for ()
-        .route("/count", get(count))
+        .route("/messages", get(messages))
 }

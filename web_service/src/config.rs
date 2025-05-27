@@ -62,9 +62,25 @@ pub struct Settings {
 
     #[serde(flatten)]
     #[clap(flatten)]
-    pub redis: RedisConfig,
+    pub redis: Option<RedisConfig>,
 
     #[serde(flatten)]
     #[clap(flatten)]
     pub grpc: GrpcConfig,
+}
+
+#[cfg(test)]
+mod tests{
+    use clap::Parser;
+    use super::Settings;
+
+    #[test]
+    fn check_redis_default() {
+        let mut config: Settings = Parser::parse_from(None as Option<&str>);
+        dbg!("{:?}", &config);
+        assert!(config.redis.is_none());
+
+        config = Settings::default();
+        assert!(config.redis.is_none());
+    }
 }

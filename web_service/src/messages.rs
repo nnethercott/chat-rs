@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use std::{fmt::Display, ops::{Deref, DerefMut}};
 
 use crate::Result as WebResult;
 use axum::{
@@ -10,7 +10,7 @@ use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct MessagesData(Vec<Turn>);
 
 impl Deref for MessagesData {
@@ -41,6 +41,13 @@ impl Messages {
         let mut data = self.data;
         data.push(turn);
         Ok(self.session.insert(Self::MESSAGE_KEY, data).await?)
+    }
+}
+
+impl Display for Messages{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let contents = format!("{:?}", self.data);
+        f.write_str(&contents)
     }
 }
 
