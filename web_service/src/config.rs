@@ -25,7 +25,7 @@ impl WebConfig {
     }
 }
 
-#[derive(Parser, Debug, Deserialize, Default)]
+#[derive(Parser, Debug, Deserialize)]
 pub struct RedisConfig {
     /// Redis host
     #[clap(long = "redis-host", default_value = "0.0.0.0", id = "redis.host")]
@@ -38,6 +38,16 @@ pub struct RedisConfig {
     /// Redis password
     #[clap(long = "redis-password", default_value = "password")]
     pub password: String,
+}
+
+impl Default for RedisConfig {
+    fn default() -> Self {
+        RedisConfig {
+            host: "0.0.0.0".into(),
+            port: 6379,
+            password: "password".into(),
+        }
+    }
 }
 
 impl RedisConfig {
@@ -70,9 +80,9 @@ pub struct Settings {
 }
 
 #[cfg(test)]
-mod tests{
-    use clap::Parser;
+mod tests {
     use super::Settings;
+    use clap::Parser;
 
     #[test]
     fn check_redis_default() {

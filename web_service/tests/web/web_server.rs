@@ -7,6 +7,7 @@ use axum::{
 use clap::Parser;
 use http_body_util::BodyExt;
 use insta::assert_debug_snapshot;
+use tokio::net::TcpListener;
 use tower::ServiceExt;
 use web_service::{
     config::{RedisConfig, Settings},
@@ -71,17 +72,15 @@ async fn test_list_models_endpoint() {
 
 #[tokio::test]
 async fn test_message_extractor() {
-    // TODO: check if we can use default and then update with an impl Deserialize
     let mut config: Settings = Parser::parse_from(None as Option<&str>);
-
-    // FIXME: default isn't implemented, only default vals for clap!
     config.redis = Some(RedisConfig::default());
-    dbg!("{:?}", &config.redis);
 
     let app = App::new_with_session_store(config)
         .await
         .unwrap()
         .into_router();
+
+    //TODO: find a way to add messages here ...
 
     let response = app
         .with_state(AppState::default())
@@ -96,5 +95,7 @@ async fn test_message_extractor() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    //TODO: check contents
+
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    assert_debug_snapshot!(bytes, @r#"b"MessagesData([])""#)
 }

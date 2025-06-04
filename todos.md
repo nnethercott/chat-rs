@@ -24,10 +24,10 @@ tangible:
   - is this done at the tokio level or through k8s deployments
   - for each replica we'll need an internal IP used in the pod network, would this come from an env variable override of our config through a ConfigMap?
 - can use a redis or sqlite instance tied to the session id  of a user to store conversation history server-side
-  - might need a storage layer ...
+  - might need a storage layer ... ✅
 - share the grpc client through an app state ✅
 - grafana + otel + prometheus for metrics like latency, token throughput, etc
-- in a v2: websocket or chunked in routes/chat to simulate real-time chat
+- in a v2: websocket or chunked in routes/chat to simulate real-time chat ✅
 
 ### notes on logging
 - tracing layer for grpc like [this](https://docs.rs/tower-http/latest/tower_http/trace/struct.TraceLayer.html#method.new_for_grpc)
@@ -60,14 +60,14 @@ conceptual:
 - [ ] update proto; define interface for streaming/blocking requests
 - [x] move model pool spawn outside of tokio context so we can blocking_send
 - [x] add clap to all the configs
-  - [ ] serde + serde_yaml for deserializing from a local file ?
   - [x] register relevant environment variables for ports and stuff
 - [ ] make gh issue about cleaning up SamplingOpts  vs Opts -> do this after branch merge
 - [ ] gh packages for each service ?
 - [ ] add a kill signal to stop token generation
 - [ ] middleware (message history cache with session)
-  - chatgpt can persist messages since we're signed in. in my case lets just restore m essages across single browser sessions
+  - chatgpt can persist messages since we're signed in. in my case lets just restore messages across single browser sessions
   - in any case we just need to make sure a user's messages are retrieved before streaming by **any** model
+- [ ] add http streaming version of the chat endpoint for comparison
 
 ## notes
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another

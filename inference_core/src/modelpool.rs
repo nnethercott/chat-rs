@@ -44,7 +44,7 @@ pub struct Opts {
 impl Default for Opts {
     fn default() -> Self {
         Self {
-            max_new_tokens: 128,
+            max_new_tokens: 10,
             eos_tokens: vec![],
             temperature: Some(0.2),
             top_k: None,

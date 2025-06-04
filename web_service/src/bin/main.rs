@@ -9,13 +9,13 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::fmt::layer()
-                .json()
                 .with_level(true)
-                .with_span_list(false), // noise
+                // .with_span_list(false), // noise
         )
         .with(EnvFilter::try_from_default_env().unwrap_or("info".into()))
         .init();
 
+    dbg!("{:?}", &config);
     App::new_with_session_store(config).await?.run().await?;
     Ok(())
 }

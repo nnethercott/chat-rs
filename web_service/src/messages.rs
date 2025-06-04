@@ -1,15 +1,19 @@
-use std::{fmt::Display, ops::{Deref, DerefMut}};
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
 
 use crate::Result as WebResult;
 use axum::{
     extract::FromRequestParts,
     response::{IntoResponseParts, ResponseParts},
 };
-use grpc_service::Turn;
+use grpc_service::{Role, Turn, turn::Data};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 
+/// a wrapper around user-agent turns
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct MessagesData(Vec<Turn>);
 
@@ -26,6 +30,7 @@ impl DerefMut for MessagesData {
     }
 }
 
+/// object to hold session store and update conversation history on the fly
 pub struct Messages {
     data: MessagesData,
     session: Session,
@@ -33,24 +38,29 @@ pub struct Messages {
 impl Messages {
     const MESSAGE_KEY: &'static str = "MESSAGES";
 
-    pub fn push(&mut self, turn: Turn){
+    pub fn push_msg(&mut self, role: Role, content: impl Into<String>) {
+        let turn = Turn {
+            role: role.into(),
+            data: Some(Data::Text(content.into())),
+        };
         self.data.push(turn);
     }
 
-    pub async fn update_session(self, turn: Turn) -> WebResult<()> {
-        let mut data = self.data;
-        data.push(turn);
-        Ok(self.session.insert(Self::MESSAGE_KEY, data).await?)
+    pub async fn update_session(&mut self) -> WebResult<()> {
+        let res = self.session.insert(Self::MESSAGE_KEY, &self.data).await?;
+        // dbg!("{:?}", self.session.get::<Vec<Turn>>(Self::MESSAGE_KEY).await);
+        Ok(res)
     }
 }
 
-impl Display for Messages{
+impl Display for Messages {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let contents = format!("{:?}", self.data);
+        let contents = format!("{:?}", &self.data);
         f.write_str(&contents)
     }
 }
 
+/// implement extractor for Messages
 impl<S> FromRequestParts<S> for Messages
 where
     S: Send + Sync,

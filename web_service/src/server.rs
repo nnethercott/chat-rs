@@ -80,8 +80,7 @@ impl App {
     }
 
     /// opt into persistent sessions
-    /// NOTE: need a mechanism to include/exclude extractor in route
-    /// NOTE: can also connect to postgres instance for read-through
+    /// NOTE: can also configure redis to connect to postgres for read-through behaviour
     pub async fn new_with_session_store(config: Settings) -> Result<Self> {
         let App { app, config } = Self::new(config)?;
 
