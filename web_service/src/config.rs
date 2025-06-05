@@ -57,7 +57,7 @@ impl RedisConfig {
             &self.password, &self.host, &self.port,
         );
         let fred_config = Config::from_url(&conn_str)?;
-        let pool = Pool::new(fred_config, None, None, None, 2)?;
+        let pool = Pool::new(fred_config, None, None, None, 6)?;
         let redis_conn = pool.connect();
         pool.wait_for_connect().await?;
         Ok((RedisStore::new(pool), redis_conn))

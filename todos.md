@@ -68,6 +68,7 @@ conceptual:
   - chatgpt can persist messages since we're signed in. in my case lets just restore messages across single browser sessions
   - in any case we just need to make sure a user's messages are retrieved before streaming by **any** model
 - [ ] add http streaming version of the chat endpoint for comparison
+- [ ] add names to rounds and `find_url` instead of hardcoding in app
 
 ## notes
 - to run the grpc server and client run `cargo run --bin server` in one terminal, and `cargo run --bin client` in another

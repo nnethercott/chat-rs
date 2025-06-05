@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 
 /// a wrapper around user-agent turns
-#[derive(Serialize, Deserialize, Default, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct MessagesData(Vec<Turn>);
 
 impl Deref for MessagesData {
@@ -32,11 +32,11 @@ impl DerefMut for MessagesData {
 
 /// object to hold session store and update conversation history on the fly
 pub struct Messages {
-    data: MessagesData,
-    session: Session,
+    pub data: MessagesData,
+    pub session: Session,
 }
 impl Messages {
-    const MESSAGE_KEY: &'static str = "MESSAGES";
+    pub const MESSAGE_KEY: &'static str = "MESSAGES";
 
     pub fn push_msg(&mut self, role: Role, content: impl Into<String>) {
         let turn = Turn {
@@ -47,9 +47,7 @@ impl Messages {
     }
 
     pub async fn update_session(&mut self) -> WebResult<()> {
-        let res = self.session.insert(Self::MESSAGE_KEY, &self.data).await?;
-        // dbg!("{:?}", self.session.get::<Vec<Turn>>(Self::MESSAGE_KEY).await);
-        Ok(res)
+        Ok(self.session.insert(Self::MESSAGE_KEY, &self.data).await?)
     }
 }
 

@@ -16,6 +16,6 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     dbg!("{:?}", &config);
-    App::new_with_session_store(config).await?.run().await?;
+    App::new_with_session_store(config).await.unwrap().run().await?;
     Ok(())
 }

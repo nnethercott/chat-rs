@@ -17,6 +17,7 @@
             this.disabled = true;
 
             // establish connection with our websocket
+            // TODO: establish connection only on `chat` 
             const websocket = new WebSocket("ws://localhost:3000/models/1/chat");
 
             websocket.onopen = function() {

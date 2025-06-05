@@ -11,7 +11,11 @@ use tonic::{Request, Streaming};
 use tower_sessions::Session;
 use tracing::{error, info, warn};
 
-use crate::{Error, Result, messages::Messages, server::AppState};
+use crate::{
+    Error, Result,
+    messages::{Messages, MessagesData},
+    server::AppState,
+};
 
 // GET /models/{id}/chat
 pub(super) async fn chat(
@@ -20,6 +24,7 @@ pub(super) async fn chat(
     chat_history: Messages,
     Path(id): Path<u32>,
 ) -> impl IntoResponse {
+    info!(session_id=?chat_history.session.id());
     ws.on_upgrade(move |socket| handle_websocket(socket, app_state, id, chat_history))
 }
 
@@ -70,6 +75,13 @@ async fn handle_websocket(stream: WebSocket, state: AppState, _id: u32, mut mess
                     .map_err(|e| warn!("failed to register Agent message.\n{:?}", e));
             }
         }
+        dbg!(
+            "{:?}",
+            messages
+                .session
+                .get::<MessagesData>(Messages::MESSAGE_KEY)
+                .await
+        );
     }
 }
 

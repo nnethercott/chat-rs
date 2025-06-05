@@ -1,3 +1,4 @@
+use crate::routes::{_init_session, add_dummy_message};
 use crate::Result;
 use crate::{config::Settings, routes::app_routes};
 use axum::Router;
@@ -9,8 +10,7 @@ use tokio::signal;
 use tokio::{net::TcpListener, sync::Mutex};
 use tonic::transport::Channel;
 use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, MakeSpan, TraceLayer};
-use tower_sessions::SessionManagerLayer;
-use tower_sessions_redis_store::RedisStore;
+use tower_sessions::{MemoryStore, Session, SessionManagerLayer, session};
 use tracing::{Level, debug, error, info, warn};
 use uuid::Uuid;
 
@@ -63,8 +63,10 @@ impl App {
         let app = Router::new()
             // routes
             .merge(app_routes())
+            .route("/", get(_init_session))
+            .route("/dummy", get(add_dummy_message))
+            .route("/chat", get(async || Html(include_str!("../chat.html"))))
             // request tracing
-            .route("/", get(async || Html(include_str!("../chat.html"))))
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(WebMakeSpan)
@@ -72,7 +74,7 @@ impl App {
                     .on_response(
                         DefaultOnResponse::new()
                             .level(Level::INFO)
-                            .latency_unit(tower_http::LatencyUnit::Micros),
+                            .latency_unit(tower_http::LatencyUnit::Millis),
                     ),
             );
 
@@ -86,14 +88,20 @@ impl App {
 
         match &config.redis {
             Some(redis) => {
+                info!("redis config found");
                 let (session_store, _) = redis.connect().await?;
                 let session_layer = SessionManagerLayer::new(session_store).with_secure(false);
+
                 let app = app.layer(session_layer);
                 Ok(App { app, config })
             }
             // no-op
             None => {
-                warn!("redis config not found, skipping");
+                warn!("redis config not found, using memory store");
+                let session_store = MemoryStore::default();
+                let session_layer = SessionManagerLayer::new(session_store).with_secure(false);
+
+                let app = app.layer(session_layer);
                 Ok(App { app, config })
             }
         }
