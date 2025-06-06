@@ -1,4 +1,3 @@
-use crate::routes::{_init_session, add_dummy_message};
 use crate::Result;
 use crate::{config::Settings, routes::app_routes};
 use axum::Router;
@@ -63,8 +62,6 @@ impl App {
         let app = Router::new()
             // routes
             .merge(app_routes())
-            .route("/", get(_init_session))
-            .route("/dummy", get(add_dummy_message))
             .route("/chat", get(async || Html(include_str!("../chat.html"))))
             // request tracing
             .layer(

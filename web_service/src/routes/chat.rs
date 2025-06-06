@@ -7,6 +7,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use grpc_service::{Role, Turn, turn::Data};
+use http::StatusCode;
 use tonic::{Request, Streaming};
 use tower_sessions::Session;
 use tracing::{error, info, warn};
@@ -22,8 +23,17 @@ pub(super) async fn chat(
     ws: WebSocketUpgrade,
     State(app_state): State<AppState>,
     chat_history: Messages,
+    session: Session,
     Path(id): Path<u32>,
 ) -> impl IntoResponse {
+    // Establish session. 
+    // This works but is hacky, we don't save the insert so its not persisted BUT we get a session
+    // cookie so we can save stuff later
+    session
+        .insert("init", "OK")
+        .await
+        .map_err(|_| ("failed to init", StatusCode::INTERNAL_SERVER_ERROR));
+
     info!(session_id=?chat_history.session.id());
     ws.on_upgrade(move |socket| handle_websocket(socket, app_state, id, chat_history))
 }

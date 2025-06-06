@@ -47,7 +47,9 @@ impl Messages {
     }
 
     pub async fn update_session(&mut self) -> WebResult<()> {
-        Ok(self.session.insert(Self::MESSAGE_KEY, &self.data).await?)
+        self.session.insert(Self::MESSAGE_KEY, &self.data).await?;
+        self.session.save().await?;
+        Ok(())
     }
 }
 
